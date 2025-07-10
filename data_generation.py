@@ -117,31 +117,27 @@ class SpaceChargeDataGenerator:
 
     def _update_gpu_arrays(self, particles_x, particles_y, particles_z, particles_q):
         """Update pre-allocated GPU arrays with new particle data"""
-        # Use Julia's copyto! to avoid reallocation
-        jl.seval("copyto!")(self._particles_x_gpu, particles_x)
-        jl.seval("copyto!")(self._particles_y_gpu, particles_y)
-        jl.seval("copyto!")(self._particles_z_gpu, particles_z)
-        jl.seval("copyto!")(self._particles_q_gpu, particles_q)
+        # Convert NumPy arrays to Julia Arrays before copying to CuArrays
+        jl.seval("copyto!")(self._particles_x_gpu, jl.Array(particles_x))
+        jl.seval("copyto!")(self._particles_y_gpu, jl.Array(particles_y))
+        jl.seval("copyto!")(self._particles_z_gpu, jl.Array(particles_z))
+        jl.seval("copyto!")(self._particles_q_gpu, jl.Array(particles_q))
 
-    def _save_efield_async(self, efield, filename):
-        """Save efield data asynchronously"""
+    def _save_data_async(self, rho, efield, filename):
+        """Save rho and efield data asynchronously as a .npz file"""
         def save_func():
-            np.save(filename, efield)
-        
+            np.savez(filename, rho=rho, efield=efield)
         self.io_executor.submit(save_func)
 
     def generate_sample(self, i):
         if self.sigma_samples is None:
             raise ValueError("sigma_samples not generated. Call generate_sigma_samples() first.")
         sigma_x, sigma_y, sigma_z = self.sigma_samples[i]
-        
         # Update with current sigma values
         self.generator["x_dist:sigma_x:value"] = sigma_x
         self.generator["y_dist:sigma_y:value"] = sigma_y
         self.generator["z_dist:sigma_z:value"] = sigma_z
-        
         pg = self.generator.run()
-        
         # Update pre-allocated GPU arrays instead of creating new ones
         self._update_gpu_arrays(
             pg['x'].astype(np.float64),
@@ -149,18 +145,16 @@ class SpaceChargeDataGenerator:
             pg['z'].astype(np.float64),
             pg['weight'].astype(np.float64)
         )
-        
         # Use cached Julia functions
         self._deposit_func(self.mesh, self._particles_x_gpu, self._particles_y_gpu, 
                           self._particles_z_gpu, self._particles_q_gpu)
         self._solve_func(self.mesh)
-        
-        # Get efield data
+        # Get rho and efield data
+        rho = np.array(self.mesh.rho)
         efield = np.array(self.mesh.efield)
-        
-        # Save data asynchronously
-        filename = f"{self.output_dir}/efield_{i:04d}.npy"
-        self._save_efield_async(efield, filename)
+        # Save data asynchronously as .npz
+        filename = f"{self.output_dir}/sample_{i:04d}.npz"
+        self._save_data_async(rho, efield, filename)
 
     def run(self):
         if self.sigma_samples is None:

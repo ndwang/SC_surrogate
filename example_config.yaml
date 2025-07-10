@@ -1,0 +1,11 @@
+# Example configuration for SpaceChargeDataGenerator
+n_samples: 1000
+n_particles: 100000
+total_charge: 1.0
+grid_size: [32, 32, 32]
+min_bound: [-0.025, -0.025, -0.025]
+max_bound: [0.025, 0.025, 0.025]
+output_dir: "data"
+sigma_mins: [0.002, 0.002, 0.002]
+sigma_maxs: [0.007, 0.007, 0.007]
+template_file: "distgen_template.yaml" 

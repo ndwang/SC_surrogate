@@ -1,0 +1,20 @@
+n_particle: 1000
+random:
+    type: hammersley
+start:
+    tstart: 0 sec
+    type: time
+x_dist:
+    sigma_x: 0.005 m
+    n_sigma_cutoff: 3
+    type: gaussian
+y_dist:
+    sigma_y: 0.005 m
+    n_sigma_cutoff: 3
+    type: gaussian
+z_dist:
+    sigma_z: 0.005 m
+    n_sigma_cutoff: 3
+    type: gaussian
+total_charge: 1 C
+species: electron 

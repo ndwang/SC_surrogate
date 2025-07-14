@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider, RadioButtons
 import sys
 import os
+import h5py
 from functools import partial
 
 def get_slice_nd(arr, axis, index, comp=None):
@@ -77,19 +78,19 @@ def interactive_slice_plot(plot_specs, shape, get_slice_funcs, window_title=None
     radio.on_clicked(update_axis)
     plt.show()
 
-def plot_density(rho):
+def plot_density(rho, run_info=""):
     vmin = np.min(rho)
     vmax = np.max(rho)
     get_slice = partial(get_slice_nd, rho, comp=None)
     plot_specs = [{
-        'title': 'Density',
+        'title': f'Density {run_info}',
         'cmap': 'viridis',
         'vmin': vmin,
         'vmax': vmax,
     }]
-    interactive_slice_plot(plot_specs, rho.shape, [get_slice], window_title='Density')
+    interactive_slice_plot(plot_specs, rho.shape, [get_slice], window_title=f'Density {run_info}')
 
-def plot_efield(efield):
+def plot_efield(efield, run_info=""):
     if efield.ndim != 4 or efield.shape[3] != 3:
         print('Error: efield must have shape (Nx, Ny, Nz, 3)')
         sys.exit(1)
@@ -98,12 +99,12 @@ def plot_efield(efield):
     component_names = ['Ex', 'Ey', 'Ez']
     get_slice_funcs = [partial(get_slice_nd, efield, comp=i) for i in range(3)]
     plot_specs = [
-        {'title': name, 'cmap': 'RdBu', 'vmin': vmin, 'vmax': vmax}
+        {'title': f'{name} {run_info}', 'cmap': 'RdBu', 'vmin': vmin, 'vmax': vmax}
         for name in component_names
     ]
-    interactive_slice_plot(plot_specs, efield.shape[:3], get_slice_funcs, window_title='Efield')
+    interactive_slice_plot(plot_specs, efield.shape[:3], get_slice_funcs, window_title=f'Efield {run_info}')
 
-def plot_both(rho, efield):
+def plot_both(rho, efield, run_info=""):
     if rho.shape != efield.shape[:3]:
         print('Error: rho and efield spatial dimensions do not match.')
         sys.exit(1)
@@ -115,54 +116,80 @@ def plot_both(rho, efield):
     get_slice_rho = partial(get_slice_nd, rho, comp=None)
     get_slice_funcs = [get_slice_rho] + [partial(get_slice_nd, efield, comp=i) for i in range(3)]
     plot_specs = [
-        {'title': 'Density', 'cmap': 'viridis', 'vmin': vmin_rho, 'vmax': vmax_rho}
+        {'title': f'Density {run_info}', 'cmap': 'viridis', 'vmin': vmin_rho, 'vmax': vmax_rho}
     ] + [
-        {'title': name, 'cmap': 'RdBu', 'vmin': vmin_ef, 'vmax': vmax_ef}
+        {'title': f'{name} {run_info}', 'cmap': 'RdBu', 'vmin': vmin_ef, 'vmax': vmax_ef}
         for name in component_names
     ]
-    interactive_slice_plot(plot_specs, rho.shape, get_slice_funcs, window_title='Density + Efield')
+    interactive_slice_plot(plot_specs, rho.shape, get_slice_funcs, window_title=f'Density + Efield {run_info}')
+
+def list_available_runs(h5_file, max_display=20):
+    """List available runs in the HDF5 file with a safety limit."""
+    runs = []
+    for key in h5_file.keys():
+        if key.startswith('run_'):
+            runs.append(key)
+    runs = sorted(runs)
+    
+    if len(runs) > max_display:
+        print(f"Warning: Found {len(runs)} runs, showing only first {max_display}")
+        print("Use --run <run_name> to specify a specific run")
+        return runs[:max_display]
+    return runs
+
+def get_run_data(h5_file, run_name):
+    """Extract data from a specific run."""
+    run_group = h5_file[run_name]
+    parameters = run_group['parameters'][:]
+    rho = run_group['rho'][:]
+    efield = run_group['efield'][:]
+    return parameters, rho, efield
 
 def main():
     import argparse
-    parser = argparse.ArgumentParser(description='Visualize 3D charge density or electric field from .npz file with interactive slicing.')
-    parser.add_argument('input_file', type=str, help='Path to .npz file containing 3D charge density and/or electric field array')
-    parser.add_argument('--plot', type=str, choices=['density', 'efield', 'both'], default='density', help='What to plot: density (rho), efield, or both')
+    parser = argparse.ArgumentParser(description='Visualize 3D charge density or electric field from HDF5 file with interactive slicing.')
+    parser.add_argument('input_file', type=str, help='Path to HDF5 file containing space charge data')
+    parser.add_argument('--plot', type=str, choices=['density', 'efield', 'both'], default='density', 
+                       help='What to plot: density (rho), efield, or both')
+    parser.add_argument('--run', type=str, required=True, help='Specific run to visualize (e.g., "run_00000")')
     args = parser.parse_args()
 
     ext = os.path.splitext(args.input_file)[1].lower()
-    if ext != '.npz':
-        print('Error: Only .npz files are supported for generalized visualization.')
+    if ext not in ['.h5', '.hdf5']:
+        print('Error: Only .h5 and .hdf5 files are supported.')
         sys.exit(1)
 
-    npz = np.load(args.input_file)
-    if args.plot == 'density':
-        if 'rho' not in npz:
-            print("Error: Key 'rho' not found in the .npz file.")
-            npz.close()
-            sys.exit(1)
-        rho = npz['rho']
-        npz.close()
-        if rho.ndim != 3:
-            print('Error: rho must be a 3D array.')
-            sys.exit(1)
-        plot_density(rho)
-    elif args.plot == 'efield':
-        if 'efield' not in npz:
-            print("Error: Key 'efield' not found in the .npz file.")
-            npz.close()
-            sys.exit(1)
-        efield = npz['efield']
-        npz.close()
-        plot_efield(efield)
-    elif args.plot == 'both':
-        if 'rho' not in npz or 'efield' not in npz:
-            print("Error: Both 'rho' and 'efield' must be present in the .npz file for --plot both.")
-            npz.close()
-            sys.exit(1)
-        rho = npz['rho']
-        efield = npz['efield']
-        npz.close()
-        plot_both(rho, efield)
+    try:
+        with h5py.File(args.input_file, 'r') as h5_file:
+            # Check if the run exists directly in HDF5 (fast)
+            if args.run not in h5_file:
+                print(f"Error: Run '{args.run}' not found.")
+                sys.exit(1)
+            selected_run = args.run
+            
+            # Load data for the selected run
+            parameters, rho, efield = get_run_data(h5_file, selected_run)
+            
+            # Create run info string for plot titles
+            run_info = f"({selected_run})"
+            
+            # Plot based on user selection
+            if args.plot == 'density':
+                if rho.ndim != 3:
+                    print('Error: rho must be a 3D array.')
+                    sys.exit(1)
+                plot_density(rho, run_info)
+            elif args.plot == 'efield':
+                plot_efield(efield, run_info)
+            elif args.plot == 'both':
+                plot_both(rho, efield, run_info)
+                
+    except FileNotFoundError:
+        print(f"Error: File '{args.input_file}' not found.")
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error reading HDF5 file: {e}")
+        sys.exit(1)
 
 if __name__ == '__main__':
     main() 

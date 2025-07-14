@@ -1,182 +1,158 @@
 from juliacall import Main as jl
+import yaml
+import os
+import h5py
+import threading
 import numpy as np
 from scipy.stats import qmc
-import os
 from tqdm import tqdm
-from distgen import Generator
-import yaml
 from concurrent.futures import ThreadPoolExecutor
-import threading
+from distgen import Generator
 
 class SpaceChargeDataGenerator:
     """
-    Class for generating space charge data using Julia and distgen.
+    Class for generating space charge data using distgen and Julia.
     Call generate_sigma_samples() before run() to set up the sigma samples.
     Optionally, use from_config() to load settings from a YAML file.
     """
     def __init__(self,
+                 template_file,
                  n_samples=1000,
-                 n_particles=100_000,
-                 total_charge=1.0,
                  grid_size=(32, 32, 32),
                  min_bound=(-0.025, -0.025, -0.025),
                  max_bound=(0.025, 0.025, 0.025),
-                 output_dir="data",
-                 sigma_mins=[0.002, 0.002, 0.002],
-                 sigma_maxs=[0.007, 0.007, 0.007],
-                 template_file=None):
-        self.n_samples = n_samples
-        self.n_particles = n_particles
-        self.total_charge = total_charge
-        self.charge_per_particle = total_charge / n_particles
-        self.grid_size = tuple(grid_size)
-        self.min_bound = tuple(min_bound)
-        self.max_bound = tuple(max_bound)
-        self.output_dir = output_dir
-        self.sigma_mins = list(sigma_mins)
-        self.sigma_maxs = list(sigma_maxs)
+                 output_dir="data/raw",
+                 output_filename="simulations.h5",
+                 sigma_mins=(0.002, 0.002, 0.002),
+                 sigma_maxs=(0.007, 0.007, 0.007),
+                 device='cpu',
+                 seed=None):
+        
+        # --- I/O Configuration ---
         self.template_file = template_file
-        os.makedirs(self.output_dir, exist_ok=True)
+        self.output_dir = output_dir
+        self.output_path = os.path.join(output_dir, output_filename)
+
+        # --- Configuration ---
+        self.n_samples = n_samples
+        self.grid_size = tuple(grid_size)
+        self.device = device
+
+        # --- Particle Generator ---
+        self.generator = self._create_generator()
+        self.n_particles = self.generator["n_particle"]
         
-        # Julia setup - cache functions to avoid repeated seval calls
-        jl.seval("using SpaceCharge, CUDA")
-        self.mesh = jl.Mesh3D(self.grid_size, self.min_bound, self.max_bound, array_type=jl.CuArray)
+        # --- Sampling ---
+        self.sampler = qmc.LatinHypercube(d=len(sigma_mins), seed=seed)
+        self.sigma_samples = qmc.scale(self.sampler.random(n=self.n_samples), sigma_mins, sigma_maxs)
         
-        # Cache Julia functions
+        # --- Julia Setup ---
+        jl.seval("using SpaceCharge")
+        if self.device == 'gpu':
+            print("Setting up for GPU (CUDA)...")
+            jl.seval("using CUDA")
+            self.array_type = jl.CuArray
+        else:
+            print("Setting up for CPU...")
+            self.array_type = jl.Array
+        
+        self.mesh = jl.Mesh3D(tuple(grid_size), tuple(min_bound), tuple(max_bound), array_type=self.array_type)
         self._deposit_func = jl.seval("deposit!")
         self._solve_func = jl.seval("solve!")
         
-        # Pre-allocate GPU arrays for particle data
-        self._particles_x_gpu = jl.CuArray(np.zeros(self.n_particles, dtype=np.float64))
-        self._particles_y_gpu = jl.CuArray(np.zeros(self.n_particles, dtype=np.float64))
-        self._particles_z_gpu = jl.CuArray(np.zeros(self.n_particles, dtype=np.float64))
-        self._particles_q_gpu = jl.CuArray(np.zeros(self.n_particles, dtype=np.float64))
-        
-        # Sampler
-        self.sampler = qmc.LatinHypercube(d=3)
-        self.sigma_samples = None
-        
-        # Thread pool for I/O operations
+        # --- Resource Management ---
         self.io_executor = ThreadPoolExecutor(max_workers=4)
-        
-        # Create the generator based on the template
-        self.generator = self._create_generator()
+        self.lock = threading.Lock()
+        self.h5_file = None # Will be opened in __enter__
+                
+        # --- Pre-allocated Julia Arrays ---
+        self._particles_x_jl = self.array_type(np.zeros(self.n_particles, dtype=np.float64))
+        self._particles_y_jl = self.array_type(np.zeros(self.n_particles, dtype=np.float64))
+        self._particles_z_jl = self.array_type(np.zeros(self.n_particles, dtype=np.float64))
+        self._particles_q_jl = self.array_type(np.zeros(self.n_particles, dtype=np.float64))
 
     @classmethod
     def from_config(cls, config_path):
-        """
-        Create an instance from a YAML config file.
-        Example YAML keys: n_samples, n_particles, total_charge, grid_size, min_bound, max_bound, output_dir, sigma_mins, sigma_maxs, template_file
-        """
+        """Create an instance from a YAML config file."""
         with open(config_path, 'r') as f:
             config = yaml.safe_load(f)
         return cls(**config)
 
-    def generate_sigma_samples(self, seed=None):
-        if seed is not None:
-            np.random.seed(seed)
-        unit_samples = self.sampler.random(n=self.n_samples)
-        self.sigma_samples = qmc.scale(unit_samples, self.sigma_mins, self.sigma_maxs)
+    def __enter__(self):
+        """Set up resources: create output directory and open HDF5 file."""
+        os.makedirs(self.output_dir, exist_ok=True)
+        self.h5_file = h5py.File(self.output_path, 'w')
+        # Store metadata in the HDF5 file itself
+        self.h5_file.attrs['n_samples'] = self.n_samples
+        self.h5_file.attrs['n_particles'] = self.n_particles
+        self.h5_file.attrs['grid_size'] = self.grid_size
+        return self
 
-    def _get_template(self):
-        """Get the distgen template with current parameters"""
-        if self.template_file and os.path.exists(self.template_file):
-            # Load template from file
-            with open(self.template_file, 'r') as f:
-                template = f.read()
-            return template
-        else:
-            # Fallback to inline template
-            return f"""
-            n_particle: {self.n_particles}
-            random:
-                type: hammersley
-            start:
-                tstart: 0 sec
-                type: time
-            x_dist:
-                sigma_x: 0.005 m
-                n_sigma_cutoff: 3
-                type: gaussian
-            y_dist:
-                sigma_y: 0.005 m
-                n_sigma_cutoff: 3
-                type: gaussian
-            z_dist:
-                sigma_z: 0.005 m
-                n_sigma_cutoff: 3
-                type: gaussian
-            total_charge: {self.total_charge} C
-            species: electron
-            """
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Clean up resources: shut down thread pool and close HDF5 file."""
+        print("\nWaiting for all write operations to complete...")
+        self.io_executor.shutdown(wait=True)
+        if self.h5_file:
+            self.h5_file.close()
+        print(f"Data saved to {self.output_path}")
 
     def _create_generator(self):
         """Create the initial generator with default values"""
-        template = self._get_template()
-        return Generator(template)
+        return Generator(self.template_file)
 
-    def _update_gpu_arrays(self, particles_x, particles_y, particles_z, particles_q):
-        """Update pre-allocated GPU arrays with new particle data"""
-        # Convert NumPy arrays to Julia Arrays before copying to CuArrays
-        jl.seval("copyto!")(self._particles_x_gpu, jl.Array(particles_x))
-        jl.seval("copyto!")(self._particles_y_gpu, jl.Array(particles_y))
-        jl.seval("copyto!")(self._particles_z_gpu, jl.Array(particles_z))
-        jl.seval("copyto!")(self._particles_q_gpu, jl.Array(particles_q))
+    def _update_jl_arrays(self, particles_x, particles_y, particles_z, particles_q):
+        """Update pre-allocated Julia arrays with new particle data."""
+        jl.seval("copyto!")(self._particles_x_jl, jl.Array(particles_x))
+        jl.seval("copyto!")(self._particles_y_jl, jl.Array(particles_y))
+        jl.seval("copyto!")(self._particles_z_jl, jl.Array(particles_z))
+        jl.seval("copyto!")(self._particles_q_jl, jl.Array(particles_q))
 
-    def _save_data_async(self, rho, efield, filename):
-        """Save rho and efield data asynchronously as a .npz file"""
+    def _save_sample_to_h5(self, i, sigmas, rho, efield):
+        """Saves a single sample (inputs and outputs) to the HDF5 file asynchronously."""
         def save_func():
-            np.savez(filename, rho=rho, efield=efield)
+            with self.lock:
+                run_group = self.h5_file.create_group(f'run_{i:05d}')
+                run_group.create_dataset('parameters', data=sigmas)
+                run_group.create_dataset('rho', data=rho, compression='gzip')
+                run_group.create_dataset('efield', data=efield, compression='gzip')
         self.io_executor.submit(save_func)
 
     def generate_sample(self, i):
-        if self.sigma_samples is None:
-            raise ValueError("sigma_samples not generated. Call generate_sigma_samples() first.")
-        sigma_x, sigma_y, sigma_z = self.sigma_samples[i]
-        # Update with current sigma values
-        self.generator["x_dist:sigma_x:value"] = sigma_x
-        self.generator["y_dist:sigma_y:value"] = sigma_y
-        self.generator["z_dist:sigma_z:value"] = sigma_z
+        sigmas = self.sigma_samples[i]
+
+        self.generator["x_dist:sigma_x:value"] = sigmas[0]
+        self.generator["y_dist:sigma_y:value"] = sigmas[1]
+        self.generator["z_dist:sigma_z:value"] = sigmas[2]
+
         pg = self.generator.run()
-        # Update pre-allocated GPU arrays instead of creating new ones
-        self._update_gpu_arrays(
+
+        self._update_jl_arrays(
             pg['x'].astype(np.float64),
             pg['y'].astype(np.float64),
             pg['z'].astype(np.float64),
             pg['weight'].astype(np.float64)
         )
-        # Use cached Julia functions
-        self._deposit_func(self.mesh, self._particles_x_gpu, self._particles_y_gpu, 
-                          self._particles_z_gpu, self._particles_q_gpu)
+
+        self._deposit_func(self.mesh, self._particles_x_jl, self._particles_y_jl, 
+                          self._particles_z_jl, self._particles_q_jl)
         self._solve_func(self.mesh)
-        # Get rho and efield data
+
         rho = np.array(self.mesh.rho)
         efield = np.array(self.mesh.efield)
-        # Save data asynchronously as .npz
-        filename = f"{self.output_dir}/sample_{i:04d}.npz"
-        self._save_data_async(rho, efield, filename)
+
+        self._save_sample_to_h5(i, sigmas, rho, efield)
 
     def run(self):
-        if self.sigma_samples is None:
-            self.generate_sigma_samples()
-        
         for i in tqdm(range(self.n_samples)):
             self.generate_sample(i)
-        
-        # Wait for all I/O operations to complete
-        self.io_executor.shutdown(wait=True)
 
-    def __del__(self):
-        """Cleanup resources"""
-        if hasattr(self, 'io_executor'):
-            self.io_executor.shutdown(wait=True)
 
 # If run as a script
 if __name__ == "__main__":
-    import sys
-    if len(sys.argv) > 1:
-        generator = SpaceChargeDataGenerator.from_config(sys.argv[1])
-    else:
-        generator = SpaceChargeDataGenerator()
-    generator.generate_sigma_samples()
-    generator.run()
+    import argparse
+    parser = argparse.ArgumentParser(description="Generate space charge data.")
+    parser.add_argument('config', type=str, help="Path to the YAML configuration file.")
+    args = parser.parse_args()
+
+    with SpaceChargeDataGenerator.from_config(args.config) as generator:
+        generator.run()

@@ -1,11 +1,36 @@
-# Example configuration for SpaceChargeDataGenerator
-n_samples: 1000
-n_particles: 100000
-total_charge: 1.0
+# ===================================================================
+# Configuration for the SpaceChargeDataGenerator (v2)
+# ===================================================================
+
+# --- I/O Configuration ---
+# The HDF5 output file. 
+output_dir: "data/raw"
+output_filename: "simulations.h5"
+
+# Path to a distgen template file. 
+# If not provided or not found, a default template will be used.
+template_file: "distgen_template.yaml"
+
+# --- Space Charge Parameters ---
+# The device to use for space charge calculations.
+# Options: 'cpu' or 'gpu'
+device: 'cpu'
+
+# The resolution of the simulation grid (Nx, Ny, Nz).
 grid_size: [32, 32, 32]
+
+# --- Data Generation Parameters ---
+# Total number of different beam parameter sets to generate.
+n_samples: 100
+
+# The bounds of the simulation grid in meters [x, y, z].
 min_bound: [-0.025, -0.025, -0.025]
 max_bound: [0.025, 0.025, 0.025]
-output_dir: "data"
+
+# --- Parameter Sampling (LHS) ---
+# The min/max values for the beam sigma [sigma_x, sigma_y, sigma_z] for LHS.
 sigma_mins: [0.002, 0.002, 0.002]
 sigma_maxs: [0.007, 0.007, 0.007]
-template_file: "distgen_template.yaml" 
+
+# Seed for reproducible sampling.
+seed: 21

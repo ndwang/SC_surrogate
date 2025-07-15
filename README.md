@@ -1,166 +1,192 @@
 ﻿# Space Charge Surrogate Model
 
-A PyTorch-based surrogate model for space charge simulation, providing efficient approximation of electric field calculations from charge density distributions.
+A PyTorch-based surrogate model for space charge simulation, enabling rapid approximation of electric field calculations from charge density distributions. This repository provides a full pipeline: data generation (with Julia/Distgen), preprocessing, model training, evaluation, and visualization.
 
-## Features
+---
 
-- **Data Preprocessing Pipeline**: Converts raw simulation data from group-per-sample HDF5 format to efficient monolithic format
-- **Normalization**: StandardScaler-based normalization with proper train/val/test splitting (no data leakage)
-- **PyTorch Dataset**: Memory-efficient lazy loading with proper tensor shapes for CNN training
-- **Comprehensive Testing**: Full test suite with fake data generation and validation
-
-## Setup
-
-### Dependencies
-
-This project uses a conda environment for all main scientific and runtime dependencies, and uv for development and testing tools.
-
-#### 1. Create and activate the conda environment
+## Quick Start
 
 ```bash
+# Clone the repository
+git clone https://github.com/ndwang/SC_surrogate.git
+cd SC_surrogate
+
+# Create and activate the conda environment
 conda env create -f environment.yml
 conda activate sc_surrogate
 ```
 
-#### 2. Install development and testing tools
+---
 
-```bash
-uv sync
+## Project Structure
+
+```
+SC_surrogate/
+├── configs/                # YAML configuration files
+│   ├── training_config.yaml      # Main training & preprocessing config
+│   ├── generation_config.yaml   # Data generation config
+│   └── distgen_template.yaml    # Distgen beam template
+├── data/
+│   ├── raw/                # Raw simulation data (HDF5, group-per-sample)
+│   └── processed/          # Preprocessed train/val/test data (HDF5, monolithic)
+├── generation/
+│   └── generate_data.py    # Data generation script (Julia/Distgen)
+├── preprocessing/
+│   └── preprocess_data.py  # Data preprocessing pipeline
+├── modeling/
+│   └── dataset.py          # PyTorch Dataset & DataLoader utilities
+├── evaluation/
+│   └── visualize.py        # Interactive visualization tools
+├── saved_models/           # Model checkpoints, scalers
+├── tests/
+│   └── test_data_pipeline.py    # Comprehensive test suite
+├── environment.yml         # Conda environment definition
+└── README.md
 ```
 
-This will install pytest, ruff, mypy, and any other dev tools specified in pyproject.toml.
+---
 
-### Required Dependencies (Conda)
-- PyTorch >= 2.1.0
-- h5py >= 3.10.0
-- scikit-learn >= 1.3.0
-- NumPy >= 1.24.0
-- PyYAML >= 6.0
-- joblib >= 1.3.0
-- scipy
-- matplotlib
-- tqdm
-- distgen
-- pip
-- pip:
-  - juliacall
+## 1. Data Generation
 
-### Required Dev/Testing Tools (pip/pyproject.toml)
-- pytest >= 8.4.1
-- ruff >= 0.12.3
-- mypy >= 1.7.0
-
-## Usage
-
-### 1. Data Preprocessing
-
-Convert raw simulation data to training-ready format:
+Generate synthetic space charge simulation data using Julia and Distgen:
 
 ```bash
-python preprocessing/preprocess_data.py [config_path]
+python generation/generate_data.py configs/generation_config.yaml
 ```
 
-This script:
-- Reads raw HDF5 data with group-per-sample structure (`run_00001/rho`, `run_00001/efield`)
-- Converts to monolithic format for efficient training
-- Applies StandardScaler normalization (fit only on training data)
-- Splits into train/val/test sets (default: 80%/10%/10%)
+- **Config:** `configs/generation_config.yaml` controls output location, grid size, number of samples, parameter ranges, and device (CPU/GPU).
+- **Template:** Uses `configs/distgen_template.yaml` for beam/particle settings.
+- **Output:** HDF5 file in `data/raw/` with group-per-sample structure: `run_00001/rho`, `run_00001/efield`, `run_00001/parameters`.
+
+**Tip:** Requires Julia and the `SpaceCharge` Julia package. See [Julia/Distgen setup](#juliadistgen-setup) below if needed.
+
+---
+
+## 2. Data Preprocessing
+
+Convert raw simulation data to a format suitable for PyTorch training:
+
+```bash
+python preprocessing/preprocess_data.py configs/training_config.yaml
+```
+
+Or in Python:
+
+```python
+from preprocessing.preprocess_data import Preprocessor
+Preprocessor('configs/training_config.yaml').run()
+```
+
+**Pipeline steps:**
+- Reads raw HDF5 data
+- Converts to monolithic format for efficient loading
+- Applies StandardScaler normalization
+- Splits into train/val/test sets
 - Saves processed data to `data/processed/` and scalers to `saved_models/`
 
-### 2. Dataset Usage
+---
+
+## 3. Model Training & Dataset Usage
 
 Load processed data for PyTorch training:
 
 ```python
 from modeling.dataset import SpaceChargeDataset, create_data_loaders
 
-# Single dataset
+# Load a single dataset
 dataset = SpaceChargeDataset('data/processed/train.h5')
-input_tensor, target_tensor = dataset[0]  # (1,32,32,32), (3,32,32,32)
+input_tensor, target_tensor = dataset[0]  # input: (1,32,32,32), target: (3,32,32,32)
 
-# Complete data loaders
+# Create DataLoaders for training/validation/testing
 train_loader, val_loader, test_loader = create_data_loaders(
     'data/processed/train.h5',
-    'data/processed/val.h5', 
+    'data/processed/val.h5',
     'data/processed/test.h5',
     batch_size=8
 )
 ```
 
-### 3. Configuration
 
-Modify `configs/training_config.yaml` to adjust:
-- Data paths and preprocessing parameters
-- Model architecture settings
-- Training hyperparameters
-- Evaluation metrics
+---
+
+## 4. Evaluation & Visualization
+
+Visualize charge density and electric field slices interactively:
+
+```bash
+python evaluation/visualize.py data/raw/simulations.h5 --plot both --run run_00000
+```
+
+- `--plot`: `density`, `efield`, or `both`
+- `--run`: Specify the run/group to visualize (e.g., `run_00000`)
+
+---
+
+## Configuration
+
+### Data Generation (`configs/generation_config.yaml`)
+- `output_dir`, `output_filename`: Where to save raw data
+- `template_file`: Path to distgen template
+- `device`: `cpu` or `gpu`
+- `grid_size`: Simulation grid resolution
+- `n_samples`: Number of samples to generate
+- `min_bound`, `max_bound`: Grid bounds (meters)
+- `sigma_mins`, `sigma_maxs`: Parameter sampling ranges
+- `seed`: Random seed for reproducibility
+
+### Preprocessing & Training (`configs/training_config.yaml`)
+- **Paths:** Raw/processed data, model save dir, logs
+- **Preprocessing:** Split ratios, normalization, chunking
+- **Model:** Architecture, channels, layers, activation, dropout, etc.
+- **Training:** Batch size, epochs, optimizer, scheduler, loss, device
+- **Evaluation:** Metrics, plotting, saving predictions
+- **Logging:** Level, file, Tensorboard/W&B integration
+
+### Distgen Template (`configs/distgen_template.yaml`)
+- Defines the beam/particle distribution for simulation (see file for details)
+
+---
 
 ## Data Format
 
-### Raw Data (Input)
-- Group-per-sample structure: `run_00001/rho`, `run_00001/efield`
-- Charge density (`rho`): shape `(32, 32, 32)`, dtype `float64`
-- Electric field (`efield`): shape `(32, 32, 32, 3)`, dtype `float64`
+### Raw Data (group-per-sample, HDF5)
+- Each sample: `run_XXXXX/`
+  - `rho`: Charge density, shape `(32, 32, 32)`, dtype `float64`
+  - `efield`: Electric field, shape `(32, 32, 32, 3)`, dtype `float64`
+  - `parameters`: Beam parameters, shape `(3,)`, dtype `float64`
 
-### Processed Data (Output)
-- Monolithic format for efficient loading
-- Charge density: shape `(N, 32, 32, 32)`, dtype `float32`, normalized
-- Electric field: shape `(N, 3, 32, 32, 32)`, dtype `float32`, normalized
-- Tensor shapes for PyTorch: input `(1, Nx, Ny, Nz)`, target `(3, Nx, Ny, Nz)`
+### Processed Data (monolithic, HDF5)
+- `charge_density`: shape `(N, 32, 32, 32)`, dtype `float32`, normalized
+- `electric_field`: shape `(N, 3, 32, 32, 32)`, dtype `float32`, normalized
+- For PyTorch: input `(1, Nx, Ny, Nz)`, target `(3, Nx, Ny, Nz)`
 
-## Testing
+---
 
-Run the comprehensive test suite:
+## Testing & Quality Assurance
+
+Run the full test suite:
 
 ```bash
-uv run pytest tests/test_data_pipeline.py -v
+pytest tests/test_data_pipeline.py -v
 ```
 
-Tests include:
-- End-to-end preprocessing pipeline validation
-- Dataset functionality and DataLoader integration
-- Normalization correctness verification
+- End-to-end pipeline validation
+- Dataset/DataLoader integration
+- Normalization correctness
 - Error handling and edge cases
 
-## Quality Assurance
-
+**Linting & Type Checking:**
 ```bash
-# Linting
-uv run ruff check --fix
-
-# Type checking
-uv run mypy preprocessing/ modeling/ --ignore-missing-imports
-
-# Full test suite
-uv run pytest tests/ -v
+ruff check --fix
+mypy preprocessing/ modeling/ --ignore-missing-imports
 ```
 
-## Project Structure
+---
 
-```
-sc_surrogate/
-├── configs/
-│   ├── training_config.yaml    # Main configuration
-│   ├── generation_config.yaml  # Data generation settings
-│   └── distgen_template.yaml   # Distribution template
-├── data/
-│   ├── raw/                    # Original simulation data
-│   └── processed/              # Preprocessed train/val/test data
-├── preprocessing/
-│   └── preprocess_data.py      # Data preprocessing pipeline
-├── modeling/
-│   └── dataset.py              # PyTorch Dataset implementation
-├── saved_models/               # Model checkpoints and scalers
-├── tests/
-│   └── test_data_pipeline.py   # Comprehensive test suite
-└── generation/
-    └── generate_data.py        # Simulation data generation
-```
+## Julia Setup (for Data Generation)
 
-## Key Features
-
-- **No Data Leakage**: Scalers fit only on training data
-- **Memory Efficient**: Lazy loading from HDF5 files
-- **CNN Ready**: Proper tensor shapes with channel dimensions
-- **Type Safe**: Full type annotations with mypy compatibility
-- **Tested**: Comprehensive test coverage with fake data fixtures
+- Install [Julia](https://julialang.org/downloads/)
+- Install Julia packages:
+  - `SpaceCharge` (for field calculation)
+  - `CUDA` (if using GPU)
+- The Python package `juliacall` (installed via pip) is used for Python-Julia interop

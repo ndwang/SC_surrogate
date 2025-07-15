@@ -34,12 +34,18 @@ SC_surrogate/
 ├── preprocessing/
 │   └── preprocess_data.py  # Data preprocessing pipeline
 ├── modeling/
-│   └── dataset.py          # PyTorch Dataset & DataLoader utilities
+│   ├── models/             # Neural network model definitions
+│   │   ├── __init__.py           # Model registry and factory
+│   │   └── cnn3d.py              # 3D CNN architecture
+│   ├── dataset.py          # PyTorch Dataset & DataLoader utilities
+│   └── train.py            # Model training script
 ├── evaluation/
+│   ├── evaluate.py         # Model evaluation script
 │   └── visualize.py        # Interactive visualization tools
 ├── saved_models/           # Model checkpoints, scalers
 ├── tests/
-│   └── test_data_pipeline.py    # Comprehensive test suite
+│   ├── test_data_pipeline.py    # Data pipeline test suite
+│   └── test_model_training.py   # Model training test suite
 ├── environment.yml         # Conda environment definition
 └── README.md
 ```
@@ -86,9 +92,66 @@ Preprocessor('configs/training_config.yaml').run()
 
 ---
 
-## 3. Model Training & Dataset Usage
+## 3. Model Training
 
-Load processed data for PyTorch training:
+Train a neural network model on the preprocessed data:
+
+```bash
+python modeling/train.py --config configs/training_config.yaml
+```
+
+**Training Pipeline:**
+- Automatically runs preprocessing if needed
+- Creates model from config (currently supports CNN3D)
+- Sets up data loaders, optimizer, scheduler, and loss function
+- Includes validation, checkpointing, early stopping, and logging
+- Saves best model, training history, and logs
+
+**Key Features:**
+- **Model-agnostic:** Easily switch architectures via config
+- **Reproducible:** Seed control and deterministic operations
+- **Robust:** Automatic device selection, gradient clipping, error handling
+- **Monitored:** Progress bars, logging, loss tracking
+
+**Training Output:**
+- `saved_models/best_model.pth` - Best model checkpoint
+- `saved_models/latest_checkpoint.pth` - Latest model state
+- `saved_models/training_history.pkl` - Loss curves and metrics
+- `logs/training.log` - Detailed training logs
+
+---
+
+## 4. Model Evaluation
+
+Evaluate a trained model on the test set:
+
+```bash
+python evaluation/evaluate.py --config configs/training_config.yaml
+```
+
+Optional: specify a specific checkpoint
+```bash
+python evaluation/evaluate.py --config configs/training_config.yaml --checkpoint saved_models/best_model.pth
+```
+
+**Evaluation Pipeline:**
+- Automatically finds best model if no checkpoint specified
+- Computes comprehensive metrics: MSE, MAE, R², RMSE
+- Per-component metrics for each electric field component (Ex, Ey, Ez)
+- Generates visualizations and saves predictions for analysis
+- Creates human-readable reports
+
+**Evaluation Output:**
+- `saved_models/evaluation/evaluation_results.txt` - Summary report
+- `saved_models/evaluation/evaluation_metrics.pkl` - Detailed metrics
+- `saved_models/evaluation/predictions.npy` - Model predictions
+- `saved_models/evaluation/plots/` - Visualization plots
+
+---
+
+## 5. Dataset Usage
+
+Load processed data for custom PyTorch training:
 
 ```python
 from modeling.dataset import SpaceChargeDataset, create_data_loaders
@@ -106,10 +169,61 @@ train_loader, val_loader, test_loader = create_data_loaders(
 )
 ```
 
+---
+
+## 6. Adding New Models
+
+The framework supports easy addition of new model architectures:
+
+### Step 1: Create Your Model
+Create a new file `modeling/models/your_model.py`:
+
+```python
+import torch.nn as nn
+from typing import Dict, Any
+
+class YourModel(nn.Module):
+    def __init__(self, config: Dict[str, Any]):
+        super().__init__()
+        model_config = config.get('model', {})
+        # Initialize your model here
+        
+    def forward(self, x):
+        # Your forward pass
+        return output
+        
+    def get_model_summary(self):
+        # Return model information
+        return {'model_name': 'YourModel', ...}
+```
+
+### Step 2: Register Your Model
+Edit `modeling/models/__init__.py`:
+
+```python
+from .your_model import YourModel
+
+MODEL_REGISTRY = {
+    'cnn3d': CNN3D,
+    'your_model': YourModel,  # Add this line
+}
+```
+
+### Step 3: Update Config
+Set the architecture in `configs/training_config.yaml`:
+
+```yaml
+model:
+  architecture: "your_model"
+  # your model-specific parameters
+```
+
+### Step 4: Train & Evaluate
+Use the same training and evaluation commands - the framework automatically uses your new model!
 
 ---
 
-## 4. Evaluation & Visualization
+## 7. Visualization
 
 Visualize charge density and electric field slices interactively:
 
@@ -167,13 +281,28 @@ python evaluation/visualize.py data/raw/simulations.h5 --plot both --run run_000
 Run the full test suite:
 
 ```bash
+# Test data pipeline
 pytest tests/test_data_pipeline.py -v
+
+# Test model training pipeline
+pytest tests/test_model_training.py -v
+
+# Run all tests
+pytest tests/ -v
 ```
 
+**Data Pipeline Tests:**
 - End-to-end pipeline validation
 - Dataset/DataLoader integration
 - Normalization correctness
 - Error handling and edge cases
+
+**Model Training Tests:**
+- Model instantiation and forward pass
+- Training loop functionality
+- Checkpoint saving/loading
+- Evaluation pipeline
+- End-to-end training process
 
 **Linting & Type Checking:**
 ```bash

@@ -9,7 +9,7 @@ output_filename: "simulations.h5"
 
 # Path to a distgen template file. 
 # If not provided or not found, a default template will be used.
-template_file: "distgen_template.yaml"
+template_file: "configs/distgen_template.yaml"
 
 # --- Space Charge Parameters ---
 # The device to use for space charge calculations.

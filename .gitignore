@@ -5,9 +5,9 @@ profile.out
 .ruff_cache/
 .venv/
 .python-version
-pyproject.toml
 uv.lock
 mypy.ini
 __pycache__/
 PRP.md
 TASK.md
+.pytest_cache/

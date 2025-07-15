@@ -19,7 +19,7 @@ import joblib
 # Import our modules
 import sys
 sys.path.append('.')
-from preprocessing.preprocess_data import main as preprocess_main
+from preprocessing.preprocess_data import Preprocessor
 from modeling.dataset import SpaceChargeDataset, create_data_loaders
 
 
@@ -115,7 +115,7 @@ def test_preprocess_data_script(setup_pipeline_test_data):
     grid_size = test_info['grid_size']
     
     # Run preprocessing
-    preprocess_main(config_path)
+    Preprocessor(config_path).run()
     
     # Assert files were created
     train_path = os.path.join(processed_dir, "train.h5")
@@ -201,7 +201,7 @@ def test_space_charge_dataset(setup_pipeline_test_data):
     grid_size = test_info['grid_size']
     
     # First run preprocessing to create the processed files
-    preprocess_main(test_info['config_path'])
+    Preprocessor(test_info['config_path']).run()
     
     # Test train dataset
     train_path = os.path.join(processed_dir, "train.h5")
@@ -263,7 +263,7 @@ def test_data_loader_creation(setup_pipeline_test_data):
     processed_dir = test_info['processed_dir']
     
     # Run preprocessing first
-    preprocess_main(test_info['config_path'])
+    Preprocessor(test_info['config_path']).run()
     
     # Test data loader creation
     train_path = os.path.join(processed_dir, "train.h5")
@@ -299,7 +299,7 @@ def test_error_handling(setup_pipeline_test_data):
     processed_dir = test_info['processed_dir']
     
     # Run preprocessing first
-    preprocess_main(test_info['config_path'])
+    Preprocessor(test_info['config_path']).run()
     
     train_path = os.path.join(processed_dir, "train.h5")
     dataset = SpaceChargeDataset(train_path)
@@ -324,7 +324,7 @@ def test_normalization_consistency(setup_pipeline_test_data):
     processed_dir = test_info['processed_dir']
     
     # Run preprocessing
-    preprocess_main(test_info['config_path'])
+    Preprocessor(test_info['config_path']).run()
     
     # Load all datasets and check normalization is similar
     split_stats = {}

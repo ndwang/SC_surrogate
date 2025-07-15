@@ -1,0 +1,114 @@
+# ===================================================================
+# Training Configuration for Space Charge Surrogate Model
+# ===================================================================
+
+# --- Path Configuration ---
+paths:
+  # Raw data file with group-per-sample structure
+  raw_data_path: "data/raw/space_charge_data.h5"
+  
+  # Directory for processed train/val/test data files
+  processed_dir: "data/processed/"
+  
+  # Directory for saving model checkpoints and scalers
+  model_save_dir: "saved_models/"
+  
+  # Log directory for training outputs
+  log_dir: "logs/"
+
+# --- Preprocessing Configuration ---
+preprocessing:
+  # Train/validation/test split ratios (must sum to 1.0)
+  split_ratios: [0.8, 0.1, 0.1]
+  
+  # Random seed for reproducible data splitting
+  split_seed: 42
+  
+  # Normalization method - 'standard' for StandardScaler
+  normalization_method: "standard"
+  
+  # Whether to shuffle data before splitting
+  shuffle_data: true
+  
+  # Memory optimization - process data in chunks if True
+  use_chunked_processing: false
+  chunk_size: 1000
+
+# --- Model Configuration ---
+model:
+  # Model architecture type
+  architecture: "cnn3d"
+  
+  # Input/output dimensions (will be determined from data)
+  input_channels: 1  # charge density
+  output_channels: 3  # electric field components (Ex, Ey, Ez)
+  
+  # Network hyperparameters
+  hidden_channels: [32, 64, 128, 64, 32]
+  kernel_size: 3
+  padding: 1
+  activation: "relu"
+  batch_norm: true
+  dropout_rate: 0.1
+  
+  # Model initialization
+  weight_init: "kaiming_normal"
+
+# --- Training Configuration ---
+training:
+  # Batch size for training
+  batch_size: 8
+  
+  # Number of training epochs
+  num_epochs: 100
+  
+  # Learning rate and optimizer settings
+  learning_rate: 0.001
+  optimizer: "adam"
+  weight_decay: 1e-5
+  
+  # Learning rate scheduler
+  scheduler:
+    type: "plateau"  # Options: "plateau", "cosine", "step"
+    patience: 10
+    factor: 0.5
+    min_lr: 1e-6
+  
+  # Loss function
+  loss_function: "mse"  # Mean Squared Error for regression
+  
+  # Validation and checkpointing
+  validation_frequency: 1  # Validate every N epochs
+  save_frequency: 10       # Save checkpoint every N epochs
+  early_stopping:
+    patience: 20
+    min_delta: 1e-6
+  
+  # Device configuration
+  device: "auto"  # "auto", "cuda", "cpu"
+  num_workers: 4  # For DataLoader
+  pin_memory: true
+
+# --- Evaluation Configuration ---
+evaluation:
+  # Metrics to compute during evaluation
+  metrics: ["mse", "mae", "r2_score"]
+  
+  # Visualization settings
+  save_predictions: true
+  plot_frequency: 10
+  max_plots: 5
+
+# --- Logging Configuration ---
+logging:
+  # Logging level
+  level: "INFO"
+  
+  # Log file settings
+  log_to_file: true
+  log_filename: "training.log"
+  
+  # Tensorboard/Weights & Biases integration
+  use_tensorboard: false
+  use_wandb: false
+  project_name: "space_charge_surrogate" 

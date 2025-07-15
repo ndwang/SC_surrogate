@@ -8,3 +8,6 @@ profile.out
 pyproject.toml
 uv.lock
 mypy.ini
+__pycache__/
+PRP.md
+TASK.md

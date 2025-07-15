@@ -13,6 +13,7 @@ dependencies:
   - matplotlib
   - tqdm
   - distgen
+  - pytest
   - pip
   - pip:
     - juliacall

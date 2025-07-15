@@ -55,10 +55,6 @@ def examine_raw_data(raw_data_path: str) -> Tuple[List[str], Tuple[int, int, int
         logger.info(f"Found {len(sample_keys)} samples")
         logger.info(f"rho shape: {rho_shape}, efield shape: {efield_shape}")
         
-        # Validate that efield needs transposition
-        if efield_shape[-1] == 3:
-            logger.info("efield has shape (Nx,Ny,Nz,3) - will transpose to (3,Nx,Ny,Nz)")
-        
         return sample_keys, rho_shape
 
 
@@ -103,7 +99,7 @@ def fit_scalers(raw_data_path: str, train_indices: List[int], sample_keys: List[
     Returns:
         Tuple of (input_scaler, target_scaler)
     """
-    logger.info("Fitting scalers on training data only...")
+    logger.info("Fitting scalers on training data...")
     
     train_inputs_list = []
     train_targets_list = []

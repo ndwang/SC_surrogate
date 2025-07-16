@@ -57,7 +57,7 @@ model:
 # --- Training Configuration ---
 training:
   # Batch size for training
-  batch_size: 8
+  batch_size: 32
   
   # Number of training epochs
   num_epochs: 100

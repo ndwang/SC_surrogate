@@ -432,3 +432,135 @@
 2025-07-15 20:25:06,210 - space_charge_trainer - INFO - Total training time: 0.15 hours
 2025-07-15 20:25:06,210 - space_charge_trainer - INFO - Best validation loss: 177.695694
 2025-07-15 20:25:06,210 - space_charge_trainer - INFO - Training history saved to saved_models\training_history.pkl
+2025-07-16 00:02:44,352 - space_charge_trainer - INFO - Trainer initialized successfully
+2025-07-16 00:02:44,353 - space_charge_trainer - INFO - Using existing processed data
+2025-07-16 00:02:44,369 - space_charge_trainer - INFO - Data loaders created:
+2025-07-16 00:02:44,369 - space_charge_trainer - INFO -   Train: 25 batches
+2025-07-16 00:02:44,369 - space_charge_trainer - INFO -   Validation: 4 batches
+2025-07-16 00:02:44,370 - space_charge_trainer - INFO -   Test: 4 batches
+2025-07-16 00:02:44,477 - space_charge_trainer - INFO - Model created: CNN3D
+2025-07-16 00:02:44,478 - space_charge_trainer - INFO - Parameters: 557,059
+2025-07-16 00:02:44,478 - space_charge_trainer - INFO - Device: cuda
+2025-07-16 00:02:45,353 - space_charge_trainer - INFO - Optimizer: adam, LR: 0.001
+2025-07-16 00:02:45,353 - space_charge_trainer - INFO - Scheduler: plateau
+2025-07-16 00:02:45,353 - space_charge_trainer - INFO - Starting training...
+2025-07-16 00:02:45,353 - space_charge_trainer - INFO - Total epochs: 100
+2025-07-16 00:02:45,354 - space_charge_trainer - INFO - Validation frequency: 1
+2025-07-16 00:03:21,536 - space_charge_trainer - INFO - New best model saved with validation loss: 0.699038
+2025-07-16 00:03:21,546 - space_charge_trainer - INFO - Epoch   1/100 | Train Loss: 2.489221 | Val Loss: 0.699038 | LR: 1.00e-03
+2025-07-16 00:03:58,118 - space_charge_trainer - INFO - New best model saved with validation loss: 0.404689
+2025-07-16 00:03:58,126 - space_charge_trainer - INFO - Epoch   2/100 | Train Loss: 0.827493 | Val Loss: 0.404689 | LR: 1.00e-03
+2025-07-16 00:04:34,492 - space_charge_trainer - INFO - New best model saved with validation loss: 0.311360
+2025-07-16 00:04:34,502 - space_charge_trainer - INFO - Epoch   3/100 | Train Loss: 0.611216 | Val Loss: 0.311360 | LR: 1.00e-03
+2025-07-16 00:05:10,908 - space_charge_trainer - INFO - New best model saved with validation loss: 0.252136
+2025-07-16 00:05:10,917 - space_charge_trainer - INFO - Epoch   4/100 | Train Loss: 0.474469 | Val Loss: 0.252136 | LR: 1.00e-03
+2025-07-16 00:05:47,481 - space_charge_trainer - INFO - New best model saved with validation loss: 0.212940
+2025-07-16 00:05:47,489 - space_charge_trainer - INFO - Epoch   5/100 | Train Loss: 0.382261 | Val Loss: 0.212940 | LR: 1.00e-03
+2025-07-16 00:06:24,058 - space_charge_trainer - INFO - New best model saved with validation loss: 0.185590
+2025-07-16 00:06:24,067 - space_charge_trainer - INFO - Epoch   6/100 | Train Loss: 0.327168 | Val Loss: 0.185590 | LR: 1.00e-03
+2025-07-16 00:07:00,439 - space_charge_trainer - INFO - New best model saved with validation loss: 0.164685
+2025-07-16 00:07:00,448 - space_charge_trainer - INFO - Epoch   7/100 | Train Loss: 0.282621 | Val Loss: 0.164685 | LR: 1.00e-03
+2025-07-16 00:07:36,852 - space_charge_trainer - INFO - New best model saved with validation loss: 0.156695
+2025-07-16 00:07:36,860 - space_charge_trainer - INFO - Epoch   8/100 | Train Loss: 0.254378 | Val Loss: 0.156695 | LR: 1.00e-03
+2025-07-16 00:08:13,429 - space_charge_trainer - INFO - New best model saved with validation loss: 0.150645
+2025-07-16 00:08:13,437 - space_charge_trainer - INFO - Epoch   9/100 | Train Loss: 0.232194 | Val Loss: 0.150645 | LR: 1.00e-03
+2025-07-16 00:08:49,813 - space_charge_trainer - INFO - New best model saved with validation loss: 0.143571
+2025-07-16 00:08:49,822 - space_charge_trainer - INFO - Epoch  10/100 | Train Loss: 0.218988 | Val Loss: 0.143571 | LR: 1.00e-03
+2025-07-16 00:09:26,212 - space_charge_trainer - INFO - New best model saved with validation loss: 0.132610
+2025-07-16 00:09:26,221 - space_charge_trainer - INFO - Epoch  11/100 | Train Loss: 0.210354 | Val Loss: 0.132610 | LR: 1.00e-03
+2025-07-16 00:10:03,200 - space_charge_trainer - INFO - New best model saved with validation loss: 0.130018
+2025-07-16 00:10:03,208 - space_charge_trainer - INFO - Epoch  12/100 | Train Loss: 0.204105 | Val Loss: 0.130018 | LR: 1.00e-03
+2025-07-16 00:10:40,176 - space_charge_trainer - INFO - New best model saved with validation loss: 0.129269
+2025-07-16 00:10:40,185 - space_charge_trainer - INFO - Epoch  13/100 | Train Loss: 0.195142 | Val Loss: 0.129269 | LR: 1.00e-03
+2025-07-16 00:11:17,168 - space_charge_trainer - INFO - New best model saved with validation loss: 0.124097
+2025-07-16 00:11:17,176 - space_charge_trainer - INFO - Epoch  14/100 | Train Loss: 0.184919 | Val Loss: 0.124097 | LR: 1.00e-03
+2025-07-16 00:11:53,720 - space_charge_trainer - INFO - Epoch  15/100 | Train Loss: 0.179826 | Val Loss: 0.129915 | LR: 1.00e-03
+2025-07-16 00:12:30,134 - space_charge_trainer - INFO - Epoch  16/100 | Train Loss: 0.176597 | Val Loss: 0.125858 | LR: 1.00e-03
+2025-07-16 00:13:06,325 - space_charge_trainer - INFO - New best model saved with validation loss: 0.116293
+2025-07-16 00:13:06,334 - space_charge_trainer - INFO - Epoch  17/100 | Train Loss: 0.174412 | Val Loss: 0.116293 | LR: 1.00e-03
+2025-07-16 00:13:42,707 - space_charge_trainer - INFO - Epoch  18/100 | Train Loss: 0.168077 | Val Loss: 0.123801 | LR: 1.00e-03
+2025-07-16 00:14:19,099 - space_charge_trainer - INFO - Epoch  19/100 | Train Loss: 0.163679 | Val Loss: 0.116905 | LR: 1.00e-03
+2025-07-16 00:14:55,503 - space_charge_trainer - INFO - Epoch  20/100 | Train Loss: 0.161015 | Val Loss: 0.118831 | LR: 1.00e-03
+2025-07-16 00:15:32,291 - space_charge_trainer - INFO - Epoch  21/100 | Train Loss: 0.158338 | Val Loss: 0.117513 | LR: 1.00e-03
+2025-07-16 00:16:10,228 - space_charge_trainer - INFO - Epoch  22/100 | Train Loss: 0.155070 | Val Loss: 0.123896 | LR: 1.00e-03
+2025-07-16 00:16:47,846 - space_charge_trainer - INFO - Epoch  23/100 | Train Loss: 0.153479 | Val Loss: 0.117172 | LR: 1.00e-03
+2025-07-16 00:17:25,402 - space_charge_trainer - INFO - Epoch  24/100 | Train Loss: 0.151991 | Val Loss: 0.117661 | LR: 1.00e-03
+2025-07-16 00:18:03,039 - space_charge_trainer - INFO - New best model saved with validation loss: 0.110314
+2025-07-16 00:18:03,048 - space_charge_trainer - INFO - Epoch  25/100 | Train Loss: 0.150547 | Val Loss: 0.110314 | LR: 1.00e-03
+2025-07-16 00:18:40,216 - space_charge_trainer - INFO - New best model saved with validation loss: 0.110288
+2025-07-16 00:18:40,224 - space_charge_trainer - INFO - Epoch  26/100 | Train Loss: 0.148733 | Val Loss: 0.110288 | LR: 1.00e-03
+2025-07-16 00:19:17,023 - space_charge_trainer - INFO - Epoch  27/100 | Train Loss: 0.146200 | Val Loss: 0.110827 | LR: 1.00e-03
+2025-07-16 00:19:54,403 - space_charge_trainer - INFO - Epoch  28/100 | Train Loss: 0.144073 | Val Loss: 0.115350 | LR: 1.00e-03
+2025-07-16 00:20:31,607 - space_charge_trainer - INFO - New best model saved with validation loss: 0.108711
+2025-07-16 00:20:31,617 - space_charge_trainer - INFO - Epoch  29/100 | Train Loss: 0.143256 | Val Loss: 0.108711 | LR: 1.00e-03
+2025-07-16 00:21:08,994 - space_charge_trainer - INFO - New best model saved with validation loss: 0.104974
+2025-07-16 00:21:09,002 - space_charge_trainer - INFO - Epoch  30/100 | Train Loss: 0.140958 | Val Loss: 0.104974 | LR: 1.00e-03
+2025-07-16 00:21:46,394 - space_charge_trainer - INFO - Epoch  31/100 | Train Loss: 0.140635 | Val Loss: 0.109909 | LR: 1.00e-03
+2025-07-16 00:22:23,767 - space_charge_trainer - INFO - New best model saved with validation loss: 0.104738
+2025-07-16 00:22:23,775 - space_charge_trainer - INFO - Epoch  32/100 | Train Loss: 0.139373 | Val Loss: 0.104738 | LR: 1.00e-03
+2025-07-16 00:23:01,325 - space_charge_trainer - INFO - New best model saved with validation loss: 0.102649
+2025-07-16 00:23:01,334 - space_charge_trainer - INFO - Epoch  33/100 | Train Loss: 0.139326 | Val Loss: 0.102649 | LR: 1.00e-03
+2025-07-16 00:23:38,500 - space_charge_trainer - INFO - Epoch  34/100 | Train Loss: 0.136167 | Val Loss: 0.103791 | LR: 1.00e-03
+2025-07-16 00:24:16,267 - space_charge_trainer - INFO - Epoch  35/100 | Train Loss: 0.134039 | Val Loss: 0.103652 | LR: 1.00e-03
+2025-07-16 00:24:53,908 - space_charge_trainer - INFO - Epoch  36/100 | Train Loss: 0.136141 | Val Loss: 0.107726 | LR: 1.00e-03
+2025-07-16 00:25:31,679 - space_charge_trainer - INFO - Epoch  37/100 | Train Loss: 0.133110 | Val Loss: 0.106493 | LR: 1.00e-03
+2025-07-16 00:26:09,106 - space_charge_trainer - INFO - New best model saved with validation loss: 0.100528
+2025-07-16 00:26:09,114 - space_charge_trainer - INFO - Epoch  38/100 | Train Loss: 0.131904 | Val Loss: 0.100528 | LR: 1.00e-03
+2025-07-16 00:26:46,623 - space_charge_trainer - INFO - Epoch  39/100 | Train Loss: 0.131486 | Val Loss: 0.102668 | LR: 1.00e-03
+2025-07-16 00:27:24,399 - space_charge_trainer - INFO - Epoch  40/100 | Train Loss: 0.130825 | Val Loss: 0.103408 | LR: 1.00e-03
+2025-07-16 00:28:02,064 - space_charge_trainer - INFO - Epoch  41/100 | Train Loss: 0.131004 | Val Loss: 0.105342 | LR: 1.00e-03
+2025-07-16 00:28:39,807 - space_charge_trainer - INFO - Epoch  42/100 | Train Loss: 0.129514 | Val Loss: 0.104404 | LR: 1.00e-03
+2025-07-16 00:29:16,993 - space_charge_trainer - INFO - New best model saved with validation loss: 0.099663
+2025-07-16 00:29:17,001 - space_charge_trainer - INFO - Epoch  43/100 | Train Loss: 0.128409 | Val Loss: 0.099663 | LR: 1.00e-03
+2025-07-16 00:29:54,617 - space_charge_trainer - INFO - Epoch  44/100 | Train Loss: 0.127094 | Val Loss: 0.102058 | LR: 1.00e-03
+2025-07-16 00:30:31,964 - space_charge_trainer - INFO - Epoch  45/100 | Train Loss: 0.125252 | Val Loss: 0.102414 | LR: 1.00e-03
+2025-07-16 00:31:09,551 - space_charge_trainer - INFO - New best model saved with validation loss: 0.097376
+2025-07-16 00:31:09,561 - space_charge_trainer - INFO - Epoch  46/100 | Train Loss: 0.123553 | Val Loss: 0.097376 | LR: 1.00e-03
+2025-07-16 00:31:47,167 - space_charge_trainer - INFO - Epoch  47/100 | Train Loss: 0.124538 | Val Loss: 0.108141 | LR: 1.00e-03
+2025-07-16 00:32:24,722 - space_charge_trainer - INFO - Epoch  48/100 | Train Loss: 0.123080 | Val Loss: 0.099710 | LR: 1.00e-03
+2025-07-16 00:33:02,299 - space_charge_trainer - INFO - Epoch  49/100 | Train Loss: 0.125034 | Val Loss: 0.107641 | LR: 1.00e-03
+2025-07-16 00:33:39,877 - space_charge_trainer - INFO - Epoch  50/100 | Train Loss: 0.123893 | Val Loss: 0.100937 | LR: 1.00e-03
+2025-07-16 00:34:17,338 - space_charge_trainer - INFO - Epoch  51/100 | Train Loss: 0.122349 | Val Loss: 0.101892 | LR: 1.00e-03
+2025-07-16 00:34:54,686 - space_charge_trainer - INFO - Epoch  52/100 | Train Loss: 0.121347 | Val Loss: 0.100577 | LR: 1.00e-03
+2025-07-16 00:35:32,093 - space_charge_trainer - INFO - Epoch  53/100 | Train Loss: 0.121834 | Val Loss: 0.100247 | LR: 1.00e-03
+2025-07-16 00:36:09,670 - space_charge_trainer - INFO - New best model saved with validation loss: 0.094917
+2025-07-16 00:36:09,678 - space_charge_trainer - INFO - Epoch  54/100 | Train Loss: 0.122577 | Val Loss: 0.094917 | LR: 1.00e-03
+2025-07-16 00:36:47,061 - space_charge_trainer - INFO - Epoch  55/100 | Train Loss: 0.120423 | Val Loss: 0.095268 | LR: 1.00e-03
+2025-07-16 00:37:24,061 - space_charge_trainer - INFO - Epoch  56/100 | Train Loss: 0.120099 | Val Loss: 0.095126 | LR: 1.00e-03
+2025-07-16 00:38:01,443 - space_charge_trainer - INFO - Epoch  57/100 | Train Loss: 0.120079 | Val Loss: 0.095545 | LR: 1.00e-03
+2025-07-16 00:38:39,050 - space_charge_trainer - INFO - Epoch  58/100 | Train Loss: 0.120178 | Val Loss: 0.096639 | LR: 1.00e-03
+2025-07-16 00:39:16,578 - space_charge_trainer - INFO - Epoch  59/100 | Train Loss: 0.117314 | Val Loss: 0.098017 | LR: 1.00e-03
+2025-07-16 00:39:54,407 - space_charge_trainer - INFO - Epoch  60/100 | Train Loss: 0.119292 | Val Loss: 0.105335 | LR: 1.00e-03
+2025-07-16 00:40:32,219 - space_charge_trainer - INFO - Epoch  61/100 | Train Loss: 0.118133 | Val Loss: 0.106621 | LR: 1.00e-03
+2025-07-16 00:41:09,797 - space_charge_trainer - INFO - Epoch  62/100 | Train Loss: 0.116658 | Val Loss: 0.096382 | LR: 1.00e-03
+2025-07-16 00:41:47,791 - space_charge_trainer - INFO - New best model saved with validation loss: 0.094749
+2025-07-16 00:41:47,801 - space_charge_trainer - INFO - Epoch  63/100 | Train Loss: 0.117100 | Val Loss: 0.094749 | LR: 1.00e-03
+2025-07-16 00:42:25,341 - space_charge_trainer - INFO - Epoch  64/100 | Train Loss: 0.116853 | Val Loss: 0.100642 | LR: 1.00e-03
+2025-07-16 00:43:02,687 - space_charge_trainer - INFO - Epoch  65/100 | Train Loss: 0.116081 | Val Loss: 0.094820 | LR: 1.00e-03
+2025-07-16 00:43:40,136 - space_charge_trainer - INFO - New best model saved with validation loss: 0.091270
+2025-07-16 00:43:40,144 - space_charge_trainer - INFO - Epoch  66/100 | Train Loss: 0.116054 | Val Loss: 0.091270 | LR: 1.00e-03
+2025-07-16 00:44:18,072 - space_charge_trainer - INFO - Epoch  67/100 | Train Loss: 0.115707 | Val Loss: 0.098672 | LR: 1.00e-03
+2025-07-16 00:44:55,510 - space_charge_trainer - INFO - Epoch  68/100 | Train Loss: 0.115228 | Val Loss: 0.097054 | LR: 1.00e-03
+2025-07-16 00:45:32,284 - space_charge_trainer - INFO - Epoch  69/100 | Train Loss: 0.113956 | Val Loss: 0.098681 | LR: 1.00e-03
+2025-07-16 00:46:09,055 - space_charge_trainer - INFO - Epoch  70/100 | Train Loss: 0.112693 | Val Loss: 0.094315 | LR: 1.00e-03
+2025-07-16 00:46:45,488 - space_charge_trainer - INFO - Epoch  71/100 | Train Loss: 0.112865 | Val Loss: 0.105616 | LR: 1.00e-03
+2025-07-16 00:47:22,066 - space_charge_trainer - INFO - Epoch  72/100 | Train Loss: 0.113376 | Val Loss: 0.100188 | LR: 1.00e-03
+2025-07-16 00:47:58,646 - space_charge_trainer - INFO - Epoch  73/100 | Train Loss: 0.112652 | Val Loss: 0.101227 | LR: 1.00e-03
+2025-07-16 00:48:35,235 - space_charge_trainer - INFO - Epoch  74/100 | Train Loss: 0.113425 | Val Loss: 0.093804 | LR: 1.00e-03
+2025-07-16 00:49:11,602 - space_charge_trainer - INFO - Epoch  75/100 | Train Loss: 0.112560 | Val Loss: 0.091536 | LR: 1.00e-03
+2025-07-16 00:49:49,231 - space_charge_trainer - INFO - Epoch  76/100 | Train Loss: 0.112009 | Val Loss: 0.092322 | LR: 1.00e-03
+2025-07-16 00:50:26,418 - space_charge_trainer - INFO - Epoch  77/100 | Train Loss: 0.111926 | Val Loss: 0.091473 | LR: 5.00e-04
+2025-07-16 00:51:03,962 - space_charge_trainer - INFO - Epoch  78/100 | Train Loss: 0.111046 | Val Loss: 0.095818 | LR: 5.00e-04
+2025-07-16 00:51:41,179 - space_charge_trainer - INFO - Epoch  79/100 | Train Loss: 0.111368 | Val Loss: 0.099391 | LR: 5.00e-04
+2025-07-16 00:52:18,763 - space_charge_trainer - INFO - Epoch  80/100 | Train Loss: 0.110222 | Val Loss: 0.098193 | LR: 5.00e-04
+2025-07-16 00:52:56,161 - space_charge_trainer - INFO - Epoch  81/100 | Train Loss: 0.110673 | Val Loss: 0.096288 | LR: 5.00e-04
+2025-07-16 00:53:33,947 - space_charge_trainer - INFO - Epoch  82/100 | Train Loss: 0.109994 | Val Loss: 0.098317 | LR: 5.00e-04
+2025-07-16 00:54:11,691 - space_charge_trainer - INFO - Epoch  83/100 | Train Loss: 0.109720 | Val Loss: 0.092199 | LR: 5.00e-04
+2025-07-16 00:54:49,085 - space_charge_trainer - INFO - Epoch  84/100 | Train Loss: 0.108357 | Val Loss: 0.097593 | LR: 5.00e-04
+2025-07-16 00:55:27,052 - space_charge_trainer - INFO - Epoch  85/100 | Train Loss: 0.110143 | Val Loss: 0.096269 | LR: 5.00e-04
+2025-07-16 00:56:04,308 - space_charge_trainer - INFO - Epoch  86/100 | Train Loss: 0.109252 | Val Loss: 0.094936 | LR: 5.00e-04
+2025-07-16 00:56:04,308 - space_charge_trainer - INFO - Early stopping triggered at epoch 86
+2025-07-16 00:56:04,329 - space_charge_trainer - INFO - Training completed!
+2025-07-16 00:56:04,329 - space_charge_trainer - INFO - Total training time: 0.89 hours
+2025-07-16 00:56:04,329 - space_charge_trainer - INFO - Best validation loss: 0.091270
+2025-07-16 00:56:04,330 - space_charge_trainer - INFO - Training history saved to saved_models\training_history.pkl

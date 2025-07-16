@@ -17,7 +17,7 @@ import numpy as np
 import yaml
 import joblib
 from typing import Dict, List, Any
-from preprocessing.scalers import get_scaler
+from preprocessing.scalers import get_scaler, get_fitted_attributes
 import logging
 
 # Configure logging
@@ -118,8 +118,8 @@ class Preprocessor:
         target_scaler = get_scaler(target_scaler_type)
         input_scaler.fit(input_flat)
         target_scaler.fit(target_flat)
-        logger.info(f"Input scaler ({input_scaler_type}): fitted.")
-        logger.info(f"Target scaler ({target_scaler_type}): fitted.")
+        logger.info(f"Input scaler ({input_scaler_type}): fitted. Params: {get_fitted_attributes(input_scaler)}")
+        logger.info(f"Target scaler ({target_scaler_type}): fitted. Params: {get_fitted_attributes(target_scaler)}")
         self.input_scaler = input_scaler
         self.target_scaler = target_scaler
 

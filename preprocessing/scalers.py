@@ -68,4 +68,12 @@ def get_scaler(name: str, **kwargs) -> Any:
     elif name == 'symlog':
         return SymlogScaler(**kwargs)
     else:
-        raise ValueError(f"Unknown scaler: {name}. Supported: 'standard', 'symlog'") 
+        raise ValueError(f"Unknown scaler: {name}. Supported: 'standard', 'symlog'")
+
+def get_fitted_attributes(scaler):
+    """
+    Return a dictionary of all public fitted attributes (ending with '_') for a scaler/estimator.
+    This includes attributes like mean_, scale_, var_, linthresh_, etc.
+    """
+    return {k: getattr(scaler, k) for k in dir(scaler)
+            if k.endswith('_') and not k.startswith('_') and not callable(getattr(scaler, k))} 

@@ -15,12 +15,70 @@ import yaml
 import tempfile
 import shutil
 import joblib
+import logging
+import gc
+import time
 
 # Import our modules
 import sys
 sys.path.append('.')
 from preprocessing.preprocess_data import Preprocessor
 from modeling.dataset import SpaceChargeDataset, create_data_loaders
+
+
+def robust_cleanup(test_dir: str, max_attempts: int = 3, delay: float = 0.5):
+    """
+    Robust cleanup function that handles Windows file locking issues.
+    
+    This function:
+    1. Closes all logging handlers
+    2. Forces garbage collection
+    3. Retries deletion with exponential backoff
+    4. Handles individual file removal if directory removal fails
+    """
+    # Close all logging handlers to release file locks
+    loggers = [logging.getLogger(name) for name in logging.getLogger().manager.loggerDict]
+    loggers.append(logging.getLogger())  # Add root logger
+    
+    for logger in loggers:
+        for handler in logger.handlers[:]:
+            try:
+                handler.close()
+                logger.removeHandler(handler)
+            except Exception:
+                pass  # Ignore errors during cleanup
+    
+    # Force garbage collection to release file handles
+    gc.collect()
+    
+    # Attempt to remove directory with retries
+    for attempt in range(max_attempts):
+        try:
+            if os.path.exists(test_dir):
+                shutil.rmtree(test_dir)
+            return  # Success
+        except (OSError, PermissionError):
+            if attempt < max_attempts - 1:
+                # Wait and retry
+                time.sleep(delay * (2 ** attempt))  # Exponential backoff
+            else:
+                # Last attempt - try to remove individual files
+                try:
+                    for root, dirs, files in os.walk(test_dir, topdown=False):
+                        for file in files:
+                            try:
+                                os.remove(os.path.join(root, file))
+                            except Exception:
+                                pass
+                        for dir in dirs:
+                            try:
+                                os.rmdir(os.path.join(root, dir))
+                            except Exception:
+                                pass
+                    os.rmdir(test_dir)
+                except Exception:
+                    # If all else fails, just warn and continue
+                    print(f"Warning: Could not fully clean up test directory {test_dir}")
 
 
 @pytest.fixture(scope="module")
@@ -98,8 +156,8 @@ def setup_pipeline_test_data():
     
     yield test_info
     
-    # Cleanup
-    shutil.rmtree(test_dir)
+    # Robust cleanup that handles Windows file locking
+    robust_cleanup(test_dir)
 
 
 def test_preprocess_data_script(setup_pipeline_test_data):

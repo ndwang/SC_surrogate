@@ -87,7 +87,6 @@ training:
   # Device configuration
   device: "auto"  # "auto", "cuda", "cpu"
   num_workers: 4  # For DataLoader
-  pin_memory: true
 
 # --- Evaluation Configuration ---
 evaluation:

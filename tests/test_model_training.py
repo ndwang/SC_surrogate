@@ -167,8 +167,7 @@ def setup_test_environment():
                 'min_delta': 1e-6
             },
             'device': 'cpu',  # Force CPU for consistent testing
-            'num_workers': 0,   # No multiprocessing in tests
-            'pin_memory': False
+            'num_workers': 0
         },
         'evaluation': {
             'metrics': ['mse', 'mae', 'r2_score'],

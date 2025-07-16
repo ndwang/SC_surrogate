@@ -413,8 +413,12 @@ class Trainer:
         
         start_time = time.time()
         
-        for epoch in range(num_epochs):
+        # Add outer progress bar for epochs
+        epoch_progress_bar = tqdm(range(num_epochs), desc="Epochs", position=0)
+        for epoch in epoch_progress_bar:
             self.current_epoch = epoch
+            # Update outer bar description
+            epoch_progress_bar.set_description(f"Epoch {epoch+1}/{num_epochs}")
             
             # Train
             train_loss = self.train_epoch(criterion)

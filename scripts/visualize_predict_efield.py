@@ -110,24 +110,37 @@ def main():
                 raise ValueError(f"efield must be 4D, got shape {arr.shape}")
         pred_efield = to_channel_last(pred_denorm)
         true_efield = to_channel_last(target_denorm)
-        # Use same vmin/vmax for each component across pred/true
+        diff_efield = pred_efield - true_efield
+        # Use same vmin/vmax for each component across pred/true/diff
         component_names = ['Ex', 'Ey', 'Ez']
         from functools import partial
         get_slice_funcs = []
         plot_specs = []
-        for i, name in enumerate(component_names):
-            # Set vmin/vmax to cover both pred and true for each component
+        vmins = []
+        vmaxs = []
+        # Compute vmin/vmax for each component
+        for i in range(3):
             vmin = min(pred_efield[..., i].min(), true_efield[..., i].min())
             vmax = max(pred_efield[..., i].max(), true_efield[..., i].max())
+            vmins.append(vmin)
+            vmaxs.append(vmax)
+        # Prediction row
+        for i, name in enumerate(component_names):
             get_slice_funcs.append(partial(get_slice_nd, pred_efield, comp=i))
-            plot_specs.append({'title': f'Predicted {name}', 'cmap': 'RdBu', 'vmin': vmin, 'vmax': vmax})
+            plot_specs.append({'title': f'Predicted {name}', 'cmap': 'RdBu', 'vmin': vmins[i], 'vmax': vmaxs[i]})
+        # Ground Truth row
         for i, name in enumerate(component_names):
-            # Use the same vmin/vmax as above for ground truth
-            vmin = min(pred_efield[..., i].min(), true_efield[..., i].min())
-            vmax = max(pred_efield[..., i].max(), true_efield[..., i].max())
             get_slice_funcs.append(partial(get_slice_nd, true_efield, comp=i))
-            plot_specs.append({'title': f'True {name}', 'cmap': 'RdBu', 'vmin': vmin, 'vmax': vmax})
-        interactive_slice_plot(plot_specs, pred_efield.shape[:3], get_slice_funcs, window_title=f'Sample {args.sample_idx}: Predicted vs True E-field', row_labels=['Prediction', 'Ground Truth'])
+            plot_specs.append({'title': f'True {name}', 'cmap': 'RdBu', 'vmin': vmins[i], 'vmax': vmaxs[i]})
+        # Difference row (use same vmin/vmax as above)
+        for i, name in enumerate(component_names):
+            get_slice_funcs.append(partial(get_slice_nd, diff_efield, comp=i))
+            plot_specs.append({'title': f'Diff {name}', 'cmap': 'RdBu', 'vmin': vmins[i], 'vmax': vmaxs[i]})
+        interactive_slice_plot(
+            plot_specs, pred_efield.shape[:3], get_slice_funcs,
+            window_title=f'Sample {args.sample_idx}: Predicted vs True E-field',
+            row_labels=['Prediction', 'Ground Truth', 'Difference']
+        )
     elif args.mode == 'predict':
         # Prepare density and predicted efield for plotting
         # Convert pred_denorm to (Nx, Ny, Nz, 3) if needed

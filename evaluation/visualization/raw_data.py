@@ -30,6 +30,13 @@ def interactive_slice_plot(plot_specs, shape, get_slice_funcs, window_title=None
         if row_labels is not None and len(row_labels) == 2:
             for row, label in enumerate(row_labels):
                 fig.text(0.06, 0.75 - 0.5*row, label, va='center', ha='center', rotation='vertical', fontsize=14, fontweight='bold')
+    # Support 3-row, 3-column layout for 9 plots
+    elif nplots == 9:
+        fig, axs = plt.subplots(3, 3, figsize=(18, 15))
+        axs = axs.flatten()
+        if row_labels is not None and len(row_labels) == 3:
+            for row, label in enumerate(row_labels):
+                fig.text(0.06, 0.87 - 0.37*row, label, va='center', ha='center', rotation='vertical', fontsize=14, fontweight='bold')
     else:
         fig, axs = plt.subplots(1, nplots, figsize=(6*nplots, 5))
         if nplots == 1:

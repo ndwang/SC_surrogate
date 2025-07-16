@@ -1,7 +1,7 @@
+import h5py
 from juliacall import Main as jl
 import yaml
 import os
-import h5py
 import threading
 import numpy as np
 from scipy.stats import qmc

@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 
 class Preprocessor:
-    def __init__(self, config_path: str = "configs/training_config.yaml"):
+    def __init__(self, config_path: str = "configs/training_config.yaml", batch_size: int = 32):
         self.config_path = config_path
         self.config = self.load_config(config_path)
         self.paths = self.config['paths']
@@ -39,6 +39,7 @@ class Preprocessor:
         self.test_indices = None
         self.input_scaler = None
         self.target_scaler = None
+        self.batch_size = batch_size
 
     def load_config(self, config_path: str) -> Dict[str, Any]:
         """Load configuration from YAML file."""
@@ -119,9 +120,9 @@ class Preprocessor:
         self.input_scaler = input_scaler
         self.target_scaler = target_scaler
 
-    def process_and_save_split(self, indices: List[int], split_name: str):
+    def process_and_save_split(self, indices: List[int], split_name: str, batch_size: int = 32):
         """
-        Process a data split and save to HDF5 file in monolithic format.
+        Process a data split and save to HDF5 file in monolithic format, using batching for speed.
         """
         raw_data_path = self.paths['raw_data_path']
         output_path = os.path.join(self.paths['processed_dir'], f'{split_name}.h5')
@@ -129,7 +130,7 @@ class Preprocessor:
         input_scaler = self.input_scaler
         target_scaler = self.target_scaler
         grid_shape = self.grid_shape
-        logger.info(f"Processing {split_name} split ({len(indices)} samples)...")
+        logger.info(f"Processing {split_name} split ({len(indices)} samples) with batch_size={batch_size}...")
         with h5py.File(raw_data_path, 'r') as input_file, \
              h5py.File(output_path, 'w') as output_file:
             charge_density_shape = (len(indices), *grid_shape)
@@ -146,22 +147,34 @@ class Preprocessor:
                 dtype=np.float32,
                 compression='gzip'
             )
-            for i, idx in enumerate(indices):
-                key = sample_keys[idx]
-                group = input_file[key]
-                rho = group['rho'][:]
-                rho_flat = rho.reshape(-1, 1)
-                rho_normalized = input_scaler.transform(rho_flat)
-                rho_normalized = rho_normalized.reshape(rho.shape).astype(np.float32)
-                charge_density_ds[i] = rho_normalized
-                efield = group['efield'][:]
-                efield = np.transpose(efield, (3, 0, 1, 2))
-                efield_flat = efield.reshape(-1, 1)
-                efield_normalized = target_scaler.transform(efield_flat)
-                efield_normalized = efield_normalized.reshape(efield.shape).astype(np.float32)
-                electric_field_ds[i] = efield_normalized
-                if (i + 1) % 10 == 0:
-                    logger.info(f"Processed {i + 1}/{len(indices)} samples")
+            n = len(indices)
+            for start in range(0, n, batch_size):
+                end = min(start + batch_size, n)
+                batch_indices = indices[start:end]
+                # Read batch
+                batch_rho = []
+                batch_efield = []
+                for idx in batch_indices:
+                    key = sample_keys[idx]
+                    group = input_file[key]
+                    rho = group['rho'][:]
+                    batch_rho.append(rho)
+                    efield = group['efield'][:]
+                    efield = np.transpose(efield, (3, 0, 1, 2))
+                    batch_efield.append(efield)
+                batch_rho = np.array(batch_rho)
+                batch_efield = np.array(batch_efield)
+                # Normalize batch
+                batch_rho_flat = batch_rho.reshape(-1, 1)
+                batch_rho_norm = input_scaler.transform(batch_rho_flat)
+                batch_rho_norm = batch_rho_norm.reshape(batch_rho.shape).astype(np.float32)
+                batch_efield_flat = batch_efield.reshape(-1, 1)
+                batch_efield_norm = target_scaler.transform(batch_efield_flat)
+                batch_efield_norm = batch_efield_norm.reshape(batch_efield.shape).astype(np.float32)
+                # Write batch
+                charge_density_ds[start:end] = batch_rho_norm
+                electric_field_ds[start:end] = batch_efield_norm
+                logger.info(f"Processed {end}/{n} samples")
             output_file.attrs['split_name'] = split_name
             output_file.attrs['num_samples'] = len(indices)
             output_file.attrs['grid_shape'] = grid_shape
@@ -202,17 +215,18 @@ class Preprocessor:
             ('test', self.test_indices)
         ]
         for split_name, indices in splits:
-            self.process_and_save_split(indices, split_name)
+            self.process_and_save_split(indices, split_name, batch_size=self.batch_size)
         logger.info("Data preprocessing completed successfully!")
         self.verify_normalization()
 
 
-def main(config_path: str = "configs/training_config.yaml") -> None:
-    preprocessor = Preprocessor(config_path)
+def main(config_path: str = "configs/training_config.yaml", batch_size: int = 32) -> None:
+    preprocessor = Preprocessor(config_path, batch_size=batch_size)
     preprocessor.run()
 
 
 if __name__ == "__main__":
     import sys
     config_path = sys.argv[1] if len(sys.argv) > 1 else "configs/training_config.yaml"
-    main(config_path) 
+    batch_size = int(sys.argv[2]) if len(sys.argv) > 2 else 32
+    main(config_path, batch_size) 

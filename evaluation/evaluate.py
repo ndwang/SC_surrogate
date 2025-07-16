@@ -12,7 +12,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import logging
 from pathlib import Path
-from typing import Dict, Any, Tuple, Optional
+from typing import Dict, Any, Tuple
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from tqdm import tqdm
 import pickle

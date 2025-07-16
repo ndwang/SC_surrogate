@@ -51,28 +51,20 @@ class SpaceChargeDataset(Dataset[Tuple[torch.Tensor, torch.Tensor]]):
         self.transform = transform
         self.device = device
         
-        # Open HDF5 file and get dataset handles
-        self.h5_file = h5py.File(h5_path, 'r')
-        
-        # Get dataset handles (not data - for lazy loading)
-        self.charge_density_ds = self.h5_file['charge_density']
-        self.electric_field_ds = self.h5_file['electric_field']
-        
-        # Store dataset properties
-        self.num_samples: int = int(self.charge_density_ds.shape[0])
-        self.grid_shape = self.charge_density_ds.shape[1:]  # (Nx, Ny, Nz)
-        
-        # Validate dataset shapes
-        expected_field_shape = (self.num_samples, 3, *self.grid_shape)
-        if self.electric_field_ds.shape != expected_field_shape:
-            raise ValueError(
-                f"Electric field shape {self.electric_field_ds.shape} "
-                f"doesn't match expected {expected_field_shape}"
-            )
+        # Open file once to get shape info, then close
+        with h5py.File(h5_path, 'r') as h5_file:
+            self.num_samples: int = int(h5_file['charge_density'].shape[0])
+            self.grid_shape = h5_file['charge_density'].shape[1:]  # (Nx, Ny, Nz)
+            expected_field_shape = (self.num_samples, 3, *self.grid_shape)
+            if h5_file['electric_field'].shape != expected_field_shape:
+                raise ValueError(
+                    f"Electric field shape {h5_file['electric_field'].shape} "
+                    f"doesn't match expected {expected_field_shape}"
+                )
         
         logger.info(f"Loaded dataset: {self.num_samples} samples, grid shape {self.grid_shape}")
-        logger.info(f"Charge density shape: {self.charge_density_ds.shape}")
-        logger.info(f"Electric field shape: {self.electric_field_ds.shape}")
+        logger.info("Charge density shape: (N, Nx, Ny, Nz)")
+        logger.info("Electric field shape: (N, 3, Nx, Ny, Nz)")
     
     def __len__(self) -> int:
         """Return the number of samples in the dataset."""
@@ -93,9 +85,10 @@ class SpaceChargeDataset(Dataset[Tuple[torch.Tensor, torch.Tensor]]):
         if idx >= self.num_samples:
             raise IndexError(f"Index {idx} out of range for dataset of size {self.num_samples}")
         
-        # Lazy load data from HDF5
-        charge_density = self.charge_density_ds[idx]  # shape: (Nx, Ny, Nz)
-        electric_field = self.electric_field_ds[idx]  # shape: (3, Nx, Ny, Nz)
+        with h5py.File(self.h5_path, 'r') as h5_file:
+            # Lazy load data from HDF5
+            charge_density = h5_file['charge_density'][idx]  # shape: (Nx, Ny, Nz)
+            electric_field = h5_file['electric_field'][idx]  # shape: (3, Nx, Ny, Nz)
         
         # Convert to PyTorch tensors with correct dtype
         input_tensor = torch.tensor(charge_density, dtype=torch.float32)
@@ -116,14 +109,11 @@ class SpaceChargeDataset(Dataset[Tuple[torch.Tensor, torch.Tensor]]):
     
     def __del__(self) -> None:
         """Clean up HDF5 file handle."""
-        if hasattr(self, 'h5_file') and self.h5_file:
-            self.h5_file.close()
+        pass # No persistent file handle to close
     
     def close(self) -> None:
         """Explicitly close the HDF5 file."""
-        if hasattr(self, 'h5_file') and self.h5_file:
-            self.h5_file.close()
-            self.h5_file = None
+        pass # No persistent file handle to close
     
     def get_sample_info(self, idx: int) -> Dict[str, Any]:
         """
@@ -138,18 +128,19 @@ class SpaceChargeDataset(Dataset[Tuple[torch.Tensor, torch.Tensor]]):
         if idx >= self.num_samples:
             raise IndexError(f"Index {idx} out of range for dataset of size {self.num_samples}")
         
-        # Get basic shape information
-        info: Dict[str, Any] = {
-            'index': idx,
-            'charge_density_shape': self.charge_density_ds[idx:idx+1].shape[1:],
-            'electric_field_shape': self.electric_field_ds[idx:idx+1].shape[1:],
-            'grid_shape': self.grid_shape
-        }
-        
-        # Add metadata from HDF5 attributes if available
-        if hasattr(self.h5_file, 'attrs'):
-            for key, value in self.h5_file.attrs.items():
-                info[f'dataset_{key}'] = value
+        with h5py.File(self.h5_path, 'r') as h5_file:
+            # Get basic shape information
+            info: Dict[str, Any] = {
+                'index': idx,
+                'charge_density_shape': h5_file['charge_density'][idx:idx+1].shape[1:],
+                'electric_field_shape': h5_file['electric_field'][idx:idx+1].shape[1:],
+                'grid_shape': self.grid_shape
+            }
+            
+            # Add metadata from HDF5 attributes if available
+            if hasattr(h5_file, 'attrs'):
+                for key, value in h5_file.attrs.items():
+                    info[f'dataset_{key}'] = value
         
         return info
     
@@ -169,12 +160,13 @@ class SpaceChargeDataset(Dataset[Tuple[torch.Tensor, torch.Tensor]]):
         charge_values = []
         field_values = []
         
-        for idx in indices:
-            charge_density = self.charge_density_ds[idx]
-            electric_field = self.electric_field_ds[idx]
-            
-            charge_values.append(charge_density.flatten())
-            field_values.append(electric_field.flatten())
+        with h5py.File(self.h5_path, 'r') as h5_file:
+            for idx in indices:
+                charge_density = h5_file['charge_density'][idx]
+                electric_field = h5_file['electric_field'][idx]
+                
+                charge_values.append(charge_density.flatten())
+                field_values.append(electric_field.flatten())
         
         charge_all = np.concatenate(charge_values)
         field_all = np.concatenate(field_values)

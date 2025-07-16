@@ -59,7 +59,7 @@ def robust_cleanup(test_dir: str, max_attempts: int = 3, delay: float = 0.5):
             if os.path.exists(test_dir):
                 shutil.rmtree(test_dir)
             return  # Success
-        except (OSError, PermissionError) as e:
+        except (OSError, PermissionError):
             if attempt < max_attempts - 1:
                 # Wait and retry
                 time.sleep(delay * (2 ** attempt))  # Exponential backoff

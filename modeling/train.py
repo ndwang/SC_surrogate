@@ -181,8 +181,8 @@ class Trainer:
         
         # Get training config
         training_config = self.config.get('training', {})
-        batch_size = training_config.get('batch_size', 8)
-        num_workers = training_config.get('num_workers', 4)
+        batch_size = int(training_config.get('batch_size', 8))
+        num_workers = int(training_config.get('num_workers', 4))
         pin_memory = training_config.get('pin_memory', True)
         
         # Create data loaders
@@ -218,8 +218,8 @@ class Trainer:
         
         # Setup optimizer
         optimizer_type = training_config.get('optimizer', 'adam').lower()
-        learning_rate = training_config.get('learning_rate', 0.001)
-        weight_decay = training_config.get('weight_decay', 1e-5)
+        learning_rate = float(training_config.get('learning_rate', 0.001))
+        weight_decay = float(training_config.get('weight_decay', 1e-5))
         
         if optimizer_type == 'adam':
             self.optimizer = optim.Adam(
@@ -246,27 +246,32 @@ class Trainer:
         # Setup scheduler
         scheduler_config = training_config.get('scheduler', {})
         scheduler_type = scheduler_config.get('type', 'plateau').lower()
+        factor = float(scheduler_config.get('factor', 0.5))
+        patience = int(scheduler_config.get('patience', 10))
+        min_lr = float(scheduler_config.get('min_lr', 1e-6))
+        step_size = int(scheduler_config.get('step_size', 30))
+        gamma = float(scheduler_config.get('gamma', 0.1))
+        num_epochs = int(training_config.get('num_epochs', 100))
         
         if scheduler_type == 'plateau':
             self.scheduler = optim.lr_scheduler.ReduceLROnPlateau(
                 self.optimizer,
                 mode='min',
-                factor=scheduler_config.get('factor', 0.5),
-                patience=scheduler_config.get('patience', 10),
-                min_lr=scheduler_config.get('min_lr', 1e-6)
+                factor=factor,
+                patience=patience,
+                min_lr=min_lr
             )
         elif scheduler_type == 'cosine':
-            num_epochs = training_config.get('num_epochs', 100)
             self.scheduler = optim.lr_scheduler.CosineAnnealingLR(
                 self.optimizer,
                 T_max=num_epochs,
-                eta_min=scheduler_config.get('min_lr', 1e-6)
+                eta_min=min_lr
             )
         elif scheduler_type == 'step':
             self.scheduler = optim.lr_scheduler.StepLR(
                 self.optimizer,
-                step_size=scheduler_config.get('step_size', 30),
-                gamma=scheduler_config.get('gamma', 0.1)
+                step_size=step_size,
+                gamma=gamma
             )
         else:
             self.scheduler = None
@@ -377,8 +382,8 @@ class Trainer:
     def check_early_stopping(self, val_loss: float) -> bool:
         """Check if early stopping criteria is met."""
         early_stop_config = self.config.get('training', {}).get('early_stopping', {})
-        patience = early_stop_config.get('patience', 20)
-        min_delta = early_stop_config.get('min_delta', 1e-6)
+        patience = int(early_stop_config.get('patience', 20))
+        min_delta = float(early_stop_config.get('min_delta', 1e-6))
         
         if val_loss < self.best_val_loss - min_delta:
             self.best_val_loss = val_loss
@@ -398,9 +403,9 @@ class Trainer:
         
         # Training configuration
         training_config = self.config.get('training', {})
-        num_epochs = training_config.get('num_epochs', 100)
-        validation_frequency = training_config.get('validation_frequency', 1)
-        save_frequency = training_config.get('save_frequency', 10)
+        num_epochs = int(training_config.get('num_epochs', 100))
+        validation_frequency = int(training_config.get('validation_frequency', 1))
+        save_frequency = int(training_config.get('save_frequency', 10))
         
         self.logger.info("Starting training...")
         self.logger.info(f"Total epochs: {num_epochs}")

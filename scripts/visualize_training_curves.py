@@ -2,7 +2,7 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import argparse
-from evaluation.visualization_tools.training_curves import plot_training_curves
+from evaluation.visualization.training_curves import plot_training_curves
 
 def main():
     parser = argparse.ArgumentParser(description='Plot training and validation loss curves from training_history.pkl.')

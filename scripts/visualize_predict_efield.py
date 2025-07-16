@@ -7,7 +7,7 @@ import torch
 from modeling.dataset import SpaceChargeDataset
 import matplotlib.pyplot as plt
 import yaml
-from evaluation.visualization_tools.raw_data import interactive_slice_plot, get_slice_nd
+from evaluation.visualization.raw_data import interactive_slice_plot, get_slice_nd
 import numpy as np
 
 def plot_efield_vs_truth(pred, truth, sample_idx):

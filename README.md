@@ -42,6 +42,14 @@ SC_surrogate/
 ├── evaluation/
 │   ├── evaluate.py         # Model evaluation script
 │   └── visualize.py        # Interactive visualization tools
+├── scripts/                # CLI entry points for main tasks and visualization
+│   ├── generate_dataset.py       # Generate synthetic data
+│   ├── preprocess_dataset.py     # Preprocess data
+│   ├── train_model.py            # Train the model
+│   ├── evaluate_model.py         # Evaluate the model
+│   ├── visualize_raw_data.py     # Visualize raw data
+│   ├── visualize_predict_efield.py # Visualize model predictions
+│   └── visualize_training_curves.py # Visualize training/validation loss curves
 ├── saved_models/           # Model checkpoints, scalers
 ├── tests/
 │   ├── test_data_pipeline.py    # Data pipeline test suite
@@ -57,7 +65,7 @@ SC_surrogate/
 Generate synthetic space charge simulation data using Julia and Distgen:
 
 ```bash
-python generation/generate_data.py configs/generation_config.yaml
+python scripts/generate_dataset.py configs/generation_config.yaml
 ```
 
 - **Config:** `configs/generation_config.yaml` controls output location, grid size, number of samples, parameter ranges, and device (CPU/GPU).
@@ -73,7 +81,7 @@ python generation/generate_data.py configs/generation_config.yaml
 Convert raw simulation data to a format suitable for PyTorch training:
 
 ```bash
-python preprocessing/preprocess_data.py configs/training_config.yaml
+python scripts/preprocess_dataset.py --config configs/training_config.yaml
 ```
 
 Or in Python:
@@ -110,7 +118,7 @@ If not specified, both default to 'standard'.
 Train a neural network model on the preprocessed data:
 
 ```bash
-python modeling/train.py --config configs/training_config.yaml
+python scripts/train_model.py --config configs/training_config.yaml
 ```
 
 **Training Pipeline:**
@@ -139,12 +147,12 @@ python modeling/train.py --config configs/training_config.yaml
 Evaluate a trained model on the test set:
 
 ```bash
-python evaluation/evaluate.py --config configs/training_config.yaml
+python scripts/evaluate_model.py --config configs/training_config.yaml
 ```
 
 Optional: specify a specific checkpoint
 ```bash
-python evaluation/evaluate.py --config configs/training_config.yaml --checkpoint saved_models/best_model.pth
+python scripts/evaluate_model.py --config configs/training_config.yaml --checkpoint saved_models/best_model.pth
 ```
 
 **Evaluation Pipeline:**
@@ -253,21 +261,21 @@ The repository provides a collection of interactive visualization tools to help 
 
 **Visualize raw data (density, efield, or both):**
 ```bash
-python evaluation/visualize_raw_data.py data/raw/simulations.h5 --plot both --run run_00000
+python scripts/visualize_raw_data.py data/raw/simulations.h5 --plot both --run run_00000
 ```
 - `--plot`: Choose `density`, `efield`, or `both`
 - `--run`: Specify the sample/run to visualize
 
 **Visualize model predictions (compare or predict mode):**
 ```bash
-python evaluation/visualize_predict_efield.py data/processed/test.h5 --sample_idx 0 --checkpoint saved_models/best_model.pth --scalers saved_models/scalers.pkl --config configs/training_config.yaml --mode compare
+python scripts/visualize_predict_efield.py data/processed/test.h5 --sample_idx 0 --checkpoint saved_models/best_model.pth --scalers saved_models/scalers.pkl --config configs/training_config.yaml --mode compare
 ```
 - `--mode compare`: Interactive comparison of predicted and ground truth E-field
 - `--mode predict`: Visualize charge density and predicted E-field only
 
 **Plot training and validation loss curves:**
 ```bash
-python evaluation/visualize_training_curves.py saved_models/training_history.pkl
+python scripts/visualize_training_curves.py saved_models/training_history.pkl
 ```
 
 You can import and use all visualization functions directly in your Python scripts or notebooks:

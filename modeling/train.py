@@ -489,27 +489,4 @@ class Trainer:
         with open(history_path, 'wb') as f:
             pickle.dump(history, f)
         
-        self.logger.info(f"Training history saved to {history_path}")
-
-
-def main():
-    """Main training function."""
-    import argparse
-    
-    parser = argparse.ArgumentParser(description='Train Space Charge Surrogate Model')
-    parser.add_argument(
-        '--config', 
-        type=str, 
-        default='configs/training_config.yaml',
-        help='Path to training configuration file'
-    )
-    
-    args = parser.parse_args()
-    
-    # Initialize and run trainer
-    trainer = Trainer(args.config)
-    trainer.train()
-
-
-if __name__ == "__main__":
-    main() 
+        self.logger.info(f"Training history saved to {history_path}") 

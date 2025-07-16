@@ -477,35 +477,4 @@ class Evaluator:
         self.logger.info(f"Overall R²: {metrics.get('r2_score', 'N/A'):.6f}")
         self.logger.info(f"Results saved to {save_dir}")
         
-        return metrics
-
-
-def main():
-    """Main evaluation function."""
-    import argparse
-    
-    parser = argparse.ArgumentParser(description='Evaluate Space Charge Surrogate Model')
-    parser.add_argument(
-        '--config', 
-        type=str, 
-        default='configs/training_config.yaml',
-        help='Path to training configuration file'
-    )
-    parser.add_argument(
-        '--checkpoint',
-        type=str,
-        default=None,
-        help='Path to model checkpoint (if not provided, will use best model)'
-    )
-    
-    args = parser.parse_args()
-    
-    # Initialize and run evaluator
-    evaluator = Evaluator(args.config, args.checkpoint)
-    metrics = evaluator.evaluate()
-    
-    return metrics
-
-
-if __name__ == "__main__":
-    main() 
+        return metrics 

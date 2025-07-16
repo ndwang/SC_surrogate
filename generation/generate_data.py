@@ -145,14 +145,3 @@ class SpaceChargeDataGenerator:
     def run(self):
         for i in tqdm(range(self.n_samples)):
             self.generate_sample(i)
-
-
-# If run as a script
-if __name__ == "__main__":
-    import argparse
-    parser = argparse.ArgumentParser(description="Generate space charge data.")
-    parser.add_argument('config', type=str, help="Path to the YAML configuration file.")
-    args = parser.parse_args()
-
-    with SpaceChargeDataGenerator.from_config(args.config) as generator:
-        generator.run()

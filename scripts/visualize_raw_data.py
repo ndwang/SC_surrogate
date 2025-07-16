@@ -3,7 +3,7 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import h5py
 import argparse
-from evaluation.visualization_tools.raw_data import plot_density, plot_efield, plot_both, get_run_data
+from evaluation.visualization.raw_data import plot_density, plot_efield, plot_both, get_run_data
 
 def main():
     parser = argparse.ArgumentParser(description='Visualize raw charge density and electric field data from HDF5 file.')

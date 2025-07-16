@@ -220,16 +220,4 @@ class Preprocessor:
         for split_name, indices in splits:
             self.process_and_save_split(indices, split_name, batch_size=self.batch_size)
         logger.info("Data preprocessing completed successfully!")
-        self.verify_normalization()
-
-
-def main(config_path: str = "configs/training_config.yaml", batch_size: int = 32) -> None:
-    preprocessor = Preprocessor(config_path, batch_size=batch_size)
-    preprocessor.run()
-
-
-if __name__ == "__main__":
-    import sys
-    config_path = sys.argv[1] if len(sys.argv) > 1 else "configs/training_config.yaml"
-    batch_size = int(sys.argv[2]) if len(sys.argv) > 2 else 32
-    main(config_path, batch_size) 
+        self.verify_normalization() 

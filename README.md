@@ -86,9 +86,22 @@ Preprocessor('configs/training_config.yaml').run()
 **Pipeline steps:**
 - Reads raw HDF5 data
 - Converts to monolithic format for efficient loading
-- Applies StandardScaler normalization
+- Applies normalization using configurable scalers (StandardScaler or SymlogScaler)
 - Splits into train/val/test sets
 - Saves processed data to `data/processed/` and scalers to `saved_models/`
+
+**Scaler configuration:**
+- You can select the normalization method for both input (charge density) and target (electric field) data in `configs/training_config.yaml`:
+
+```yaml
+preprocessing:
+  input_scaler: "standard"   # Options: 'standard', 'symlog'
+  target_scaler: "symlog"    # Use 'symlog' for symmetric log scaling, or 'standard' for StandardScaler
+```
+- `standard`: StandardScaler (mean=0, std=1, suitable for most data)
+- `symlog`: SymlogScaler (handles data with both positive and negative values spanning orders of magnitude)
+
+If not specified, both default to 'standard'.
 
 ---
 

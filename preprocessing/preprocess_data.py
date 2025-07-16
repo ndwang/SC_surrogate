@@ -17,7 +17,7 @@ import numpy as np
 import yaml
 import joblib
 from typing import Dict, List, Any
-from sklearn.preprocessing import StandardScaler
+from preprocessing.scalers import get_scaler
 import logging
 
 # Configure logging
@@ -88,7 +88,7 @@ class Preprocessor:
 
     def fit_scalers(self):
         """
-        Fit StandardScaler objects on training data ONLY.
+        Fit scaler objects on training data using config-specified types.
         Sets self.input_scaler and self.target_scaler.
         """
         raw_data_path = self.paths['raw_data_path']
@@ -111,12 +111,15 @@ class Preprocessor:
         logger.info(f"Training data shapes: inputs={train_inputs.shape}, targets={train_targets.shape}")
         input_flat = train_inputs.reshape(-1, 1)
         target_flat = train_targets.reshape(-1, 1)
-        input_scaler = StandardScaler()
-        target_scaler = StandardScaler()
+        # Get scaler types from config, fallback to 'standard'
+        input_scaler_type = self.preprocessing.get('input_scaler', 'standard')
+        target_scaler_type = self.preprocessing.get('target_scaler', 'standard')
+        input_scaler = get_scaler(input_scaler_type)
+        target_scaler = get_scaler(target_scaler_type)
         input_scaler.fit(input_flat)
         target_scaler.fit(target_flat)
-        logger.info(f"Input scaler: mean={input_scaler.mean_[0]:.6f}, std={input_scaler.scale_[0]:.6f}")
-        logger.info(f"Target scaler: mean={target_scaler.mean_[0]:.6f}, std={target_scaler.scale_[0]:.6f}")
+        logger.info(f"Input scaler ({input_scaler_type}): fitted.")
+        logger.info(f"Target scaler ({target_scaler_type}): fitted.")
         self.input_scaler = input_scaler
         self.target_scaler = target_scaler
 

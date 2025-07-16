@@ -26,8 +26,7 @@ preprocessing:
   
   # Scaler types for input and target (options: 'standard', 'symlog')
   input_scaler: "standard"   # StandardScaler
-  target_scaler: "standard"  # StandardScaler (change to 'symlog' for SymlogScaler)
-  # normalization_method: "standard"  # Deprecated, use input_scaler/target_scaler
+  target_scaler: "symlog"  # StandardScaler (change to 'symlog' for SymlogScaler)
   
   # Whether to shuffle data before splitting
   shuffle_data: true

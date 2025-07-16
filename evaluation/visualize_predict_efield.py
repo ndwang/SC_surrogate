@@ -115,16 +115,16 @@ def main():
         from functools import partial
         get_slice_funcs = []
         plot_specs = []
-        # Prediction panels (first row)
         for i, name in enumerate(component_names):
-            vmin = pred_efield[..., i].min()
-            vmax = pred_efield[..., i].max()
+            # Set vmin/vmax to cover both pred and true for each component
+            vmin = min(pred_efield[..., i].min(), true_efield[..., i].min())
+            vmax = max(pred_efield[..., i].max(), true_efield[..., i].max())
             get_slice_funcs.append(partial(get_slice_nd, pred_efield, comp=i))
             plot_specs.append({'title': f'Predicted {name}', 'cmap': 'RdBu', 'vmin': vmin, 'vmax': vmax})
-        # Ground truth panels (second row)
         for i, name in enumerate(component_names):
-            vmin = true_efield[..., i].min()
-            vmax = true_efield[..., i].max()
+            # Use the same vmin/vmax as above for ground truth
+            vmin = min(pred_efield[..., i].min(), true_efield[..., i].min())
+            vmax = max(pred_efield[..., i].max(), true_efield[..., i].max())
             get_slice_funcs.append(partial(get_slice_nd, true_efield, comp=i))
             plot_specs.append({'title': f'True {name}', 'cmap': 'RdBu', 'vmin': vmin, 'vmax': vmax})
         interactive_slice_plot(plot_specs, pred_efield.shape[:3], get_slice_funcs, window_title=f'Sample {args.sample_idx}: Predicted vs True E-field', row_labels=['Prediction', 'Ground Truth'])

@@ -62,7 +62,7 @@ class CNN3D(nn.Module):
             conv_layer = nn.Conv3d(
                 in_ch, out_ch, 
                 kernel_size=self.kernel_size,
-                padding=self.padding,
+                padding=0,  # Use manual reflection padding
                 bias=not self.use_batch_norm
             )
             self.encoder_layers.append(conv_layer)
@@ -90,7 +90,7 @@ class CNN3D(nn.Module):
             conv_layer = nn.Conv3d(
                 in_ch, out_ch,
                 kernel_size=self.kernel_size,
-                padding=self.padding,
+                padding=0,  # Use manual reflection padding
                 bias=not self.use_batch_norm or i == len(decoder_channels) - 2  # No bias for output layer
             )
             self.decoder_layers.append(conv_layer)
@@ -171,8 +171,10 @@ class CNN3D(nn.Module):
         current = x
         bn_idx = 0
         dropout_idx = 0
-        
+        pad = self.padding
+        pad_tuple = (pad, pad, pad, pad, pad, pad)  # (D, D, H, H, W, W)
         for conv_layer in self.encoder_layers:
+            current = F.pad(current, pad_tuple, mode='reflect')
             current = conv_layer(current)
             current = self.batch_norm_layers[bn_idx](current)
             current = activation_fn(current)
@@ -184,6 +186,7 @@ class CNN3D(nn.Module):
         
         # Decoder path
         for i, conv_layer in enumerate(self.decoder_layers):
+            current = F.pad(current, pad_tuple, mode='reflect')
             current = conv_layer(current)
             
             # Apply batch norm and activation for all layers except the last

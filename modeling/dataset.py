@@ -197,7 +197,6 @@ def create_data_loaders(
     test_path: str,
     batch_size: int = 8,
     num_workers: int = 4,
-    pin_memory: bool = True,
     device: str = 'cpu'
 ) -> Tuple[DataLoader[Tuple[torch.Tensor, torch.Tensor]], DataLoader[Tuple[torch.Tensor, torch.Tensor]], DataLoader[Tuple[torch.Tensor, torch.Tensor]]]:
     """
@@ -209,7 +208,6 @@ def create_data_loaders(
         test_path: Path to test.h5
         batch_size: Batch size for DataLoaders
         num_workers: Number of worker processes for data loading
-        pin_memory: Whether to pin memory for faster GPU transfer
         device: Device to place tensors on
         
     Returns:
@@ -225,24 +223,21 @@ def create_data_loaders(
         train_dataset,
         batch_size=batch_size,
         shuffle=True,
-        num_workers=num_workers,
-        pin_memory=pin_memory
+        num_workers=num_workers
     )
     
     val_loader = torch.utils.data.DataLoader(
         val_dataset,
         batch_size=batch_size,
         shuffle=False,
-        num_workers=num_workers,
-        pin_memory=pin_memory
+        num_workers=num_workers
     )
     
     test_loader = torch.utils.data.DataLoader(
         test_dataset,
         batch_size=batch_size,
         shuffle=False,
-        num_workers=num_workers,
-        pin_memory=pin_memory
+        num_workers=num_workers
     )
     
     logger.info(f"Created DataLoaders with batch_size={batch_size}")

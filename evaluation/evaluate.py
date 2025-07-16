@@ -186,7 +186,6 @@ class Evaluator:
         training_config = self.config.get('training', {})
         batch_size = training_config.get('batch_size', 8)
         num_workers = training_config.get('num_workers', 4)
-        pin_memory = training_config.get('pin_memory', True)
         
         # Create data loaders
         _, _, self.test_loader = create_data_loaders(
@@ -195,7 +194,6 @@ class Evaluator:
             test_path=test_path,
             batch_size=batch_size,
             num_workers=num_workers,
-            pin_memory=pin_memory,
             device='cpu'  # Move to GPU during evaluation
         )
         

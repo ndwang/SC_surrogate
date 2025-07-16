@@ -183,7 +183,6 @@ class Trainer:
         training_config = self.config.get('training', {})
         batch_size = int(training_config.get('batch_size', 8))
         num_workers = int(training_config.get('num_workers', 4))
-        pin_memory = training_config.get('pin_memory', True)
         
         # Create data loaders
         self.train_loader, self.val_loader, self.test_loader = create_data_loaders(
@@ -192,7 +191,6 @@ class Trainer:
             test_path=test_path,
             batch_size=batch_size,
             num_workers=num_workers,
-            pin_memory=pin_memory,
             device='cpu'  # Move to GPU in training loop
         )
         

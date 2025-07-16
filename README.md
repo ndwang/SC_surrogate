@@ -225,14 +225,43 @@ Use the same training and evaluation commands - the framework automatically uses
 
 ## 7. Visualization
 
-Visualize charge density and electric field slices interactively:
+The repository provides a collection of interactive visualization tools to help you explore raw data, training progress, and model predictions. All tools are located in `evaluation/visualization_tools/` and can be used both via command-line scripts and as Python modules.
 
+### Visualization Tools Overview
+
+- **Raw Data Visualization (`raw_data.py`)**
+  - Visualize charge density, electric field, or both from raw HDF5 simulation files.
+- **Model Prediction Visualization (`predict_efield.py`)**
+  - Visualize model predictions versus ground truth, or inspect predicted fields for any test sample.
+- **Training Curve Visualization (`training_curves.py`)**
+  - Plot training and validation loss curves from saved training history.
+
+### Example CLI Usage
+
+**Visualize raw data (density, efield, or both):**
 ```bash
-python evaluation/visualize.py data/raw/simulations.h5 --plot both --run run_00000
+python evaluation/visualize_raw_data.py data/raw/simulations.h5 --plot both --run run_00000
+```
+- `--plot`: Choose `density`, `efield`, or `both`
+- `--run`: Specify the sample/run to visualize
+
+**Visualize model predictions (compare or predict mode):**
+```bash
+python evaluation/visualize_predict_efield.py data/processed/test.h5 --sample_idx 0 --checkpoint saved_models/best_model.pth --scalers saved_models/scalers.pkl --config configs/training_config.yaml --mode compare
+```
+- `--mode compare`: Interactive comparison of predicted and ground truth E-field
+- `--mode predict`: Visualize charge density and predicted E-field only
+
+**Plot training and validation loss curves:**
+```bash
+python evaluation/visualize_training_curves.py saved_models/training_history.pkl
 ```
 
-- `--plot`: `density`, `efield`, or `both`
-- `--run`: Specify the run/group to visualize (e.g., `run_00000`)
+You can import and use all visualization functions directly in your Python scripts or notebooks:
+```python
+from evaluation.visualization_tools.raw_data import plot_density, plot_efield, plot_both
+from evaluation.visualization_tools.predict_efield import plot_prediction_vs_truth
+```
 
 ---
 

@@ -24,9 +24,14 @@ preprocessing:
   # Random seed for reproducible data splitting
   split_seed: 42
   
-  # Scaler types for input and target (options: 'standard', 'symlog')
-  input_scaler: "standard"   # StandardScaler
-  target_scaler: "symlog"  # StandardScaler (change to 'symlog' for SymlogScaler)
+  # Scaler configuration for input and target (options: 'standard', 'symlog')
+  # Specify as a dictionary with 'type' and optional parameters:
+  input_scaler:
+    type: 'standard'   # StandardScaler or SymlogScaler
+  target_scaler:
+    type: 'symlog'     # StandardScaler or SymlogScaler
+    # linthresh: 0.005
+    # percentile: 90
   
   # Whether to shuffle data before splitting
   shuffle_data: true

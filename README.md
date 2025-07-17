@@ -99,15 +99,21 @@ Preprocessor('configs/training_config.yaml').run()
 - Saves processed data to `data/processed/` and scalers to `saved_models/`
 
 **Scaler configuration:**
-- You can select the normalization method for both input (charge density) and target (electric field) data in `configs/training_config.yaml`:
+- You can specify the normalization method for both input (charge density) and target (electric field) data in `configs/training_config.yaml` as a dictionary with a `type` key and optional parameters:
 
 ```yaml
 preprocessing:
-  input_scaler: "standard"   # Options: 'standard', 'symlog'
-  target_scaler: "symlog"    # Use 'symlog' for symmetric log scaling, or 'standard' for StandardScaler
+  input_scaler:
+    type: 'standard'   # Options: 'standard', 'symlog'
+  target_scaler:
+    type: 'symlog'     # Use 'symlog' for symmetric log scaling, or 'standard' for StandardScaler
+    linthresh: 0.005   # (optional) Linear threshold for symlog
+    percentile: 90     # (optional) Percentile for automatic linthresh selection
 ```
 - `standard`: StandardScaler (mean=0, std=1, suitable for most data)
 - `symlog`: SymlogScaler (handles data with both positive and negative values spanning orders of magnitude)
+  - `linthresh`: (float, optional) Linear threshold for the symlog transform. If not provided, will be determined from data using `percentile`.
+  - `percentile`: (float, optional) Percentile (0-100) of |x| to use for linthresh. Default is 90.
 
 If not specified, both default to 'standard'.
 

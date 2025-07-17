@@ -111,11 +111,21 @@ class Preprocessor:
         logger.info(f"Training data shapes: inputs={train_inputs.shape}, targets={train_targets.shape}")
         input_flat = train_inputs.reshape(-1, 1)
         target_flat = train_targets.reshape(-1, 1)
-        # Get scaler types from config, fallback to 'standard'
-        input_scaler_type = self.preprocessing.get('input_scaler', 'standard')
-        target_scaler_type = self.preprocessing.get('target_scaler', 'standard')
-        input_scaler = get_scaler(input_scaler_type)
-        target_scaler = get_scaler(target_scaler_type)
+        # Require scaler configs to be dicts (matching new config format)
+        input_scaler_cfg = self.preprocessing.get('input_scaler')
+        target_scaler_cfg = self.preprocessing.get('target_scaler')
+        if not isinstance(input_scaler_cfg, dict):
+            raise ValueError("input_scaler config must be a dictionary with at least a 'type' key (see training_config.yaml)")
+        if not isinstance(target_scaler_cfg, dict):
+            raise ValueError("target_scaler config must be a dictionary with at least a 'type' key (see training_config.yaml)")
+        def parse_scaler(cfg):
+            scaler_type = cfg.get('type', 'standard')
+            kwargs = {k: v for k, v in cfg.items() if k != 'type'}
+            return scaler_type, kwargs
+        input_scaler_type, input_scaler_kwargs = parse_scaler(input_scaler_cfg)
+        target_scaler_type, target_scaler_kwargs = parse_scaler(target_scaler_cfg)
+        input_scaler = get_scaler(input_scaler_type, **input_scaler_kwargs)
+        target_scaler = get_scaler(target_scaler_type, **target_scaler_kwargs)
         input_scaler.fit(input_flat)
         target_scaler.fit(target_flat)
         logger.info(f"Input scaler ({input_scaler_type}): fitted. Params: {get_fitted_attributes(input_scaler)}")

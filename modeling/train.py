@@ -25,6 +25,7 @@ sys.path.append(str(project_root))
 from modeling.models import create_model_from_config  # noqa: E402
 from modeling.dataset import create_data_loaders  # noqa: E402
 from preprocessing.preprocess_data import Preprocessor  # noqa: E402
+from modeling.loss import get_loss_from_config
 
 
 class Trainer:
@@ -279,16 +280,8 @@ class Trainer:
     
     def setup_loss_function(self) -> nn.Module:
         """Setup loss function."""
-        loss_type = self.config.get('training', {}).get('loss_function', 'mse').lower()
-        
-        if loss_type == 'mse':
-            return nn.MSELoss()
-        elif loss_type == 'l1' or loss_type == 'mae':
-            return nn.L1Loss()
-        elif loss_type == 'huber':
-            return nn.HuberLoss()
-        else:
-            raise ValueError(f"Unsupported loss function: {loss_type}")
+        loss_config = self.config.get('training', {}).get('loss_function', 'mse')
+        return get_loss_from_config(loss_config)
     
     def train_epoch(self, criterion: nn.Module) -> float:
         """Train for one epoch."""

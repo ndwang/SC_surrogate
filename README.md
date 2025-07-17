@@ -128,6 +128,22 @@ python scripts/train_model.py --config configs/training_config.yaml
 - Includes validation, checkpointing, early stopping, and logging
 - Saves best model, training history, and logs
 
+**Loss Function Configuration:**
+- Loss functions are now extensible and defined in `modeling/losses.py`.
+- Standard losses: `mse`, `l1`/`mae`, `huber`.
+- Custom/combined losses can be specified in the config as a dict, e.g.:
+
+```yaml
+training:
+  loss_function:
+    type: "combined"
+    losses:
+      - type: "mse"
+      - type: "l1"
+    weights: [0.7, 0.3]
+```
+- Add your own loss functions in `modeling/losses.py` and register them for use in config.
+
 **Key Features:**
 - **Model-agnostic:** Easily switch architectures via config
 - **Reproducible:** Seed control and deterministic operations

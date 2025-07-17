@@ -15,13 +15,20 @@ try:
     from .cnn3d import CNN3D
 except ImportError:
     # Fallback for direct execution
-    from cnn3d import CNN3D
+    from cnn3d import CNN3D  # type: ignore
+
+try:
+    from .unet3d import UNet3D
+except ImportError:
+    # Fallback for direct execution
+    from unet3d import UNet3D  # type: ignore
 
 logger = logging.getLogger(__name__)
 
 # Registry mapping model names to their classes
 MODEL_REGISTRY: Dict[str, Type[nn.Module]] = {
     'cnn3d': CNN3D,
+    'unet3d': UNet3D,
 }
 
 
@@ -169,4 +176,23 @@ if __name__ == "__main__":
     
     print(f"Model 1 type: {type(model1).__name__}")
     print(f"Model 2 type: {type(model2).__name__}")
+    
+    # Test UNet3D creation
+    unet_config = {
+        'model': {
+            'architecture': 'unet3d',
+            'input_channels': 1,
+            'output_channels': 3,
+            'depth': 3,
+            'initial_features': 16,
+            'kernel_size': 3,
+            'activation': 'relu',
+            'batch_norm': True,
+            'dropout_rate': 0.1,
+            'weight_init': 'kaiming_normal'
+        }
+    }
+    
+    model3 = get_model('unet3d', unet_config)
+    print(f"Model 3 type: {type(model3).__name__}")
     print("Model registry test completed successfully!") 

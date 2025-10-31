@@ -40,8 +40,11 @@ SC_surrogate/
 │   ├── dataset.py          # PyTorch Dataset & DataLoader utilities
 │   └── train.py            # Model training script
 ├── evaluation/
-│   ├── evaluate.py         # Model evaluation script
-│   └── visualize.py        # Interactive visualization tools
+│   ├── evaluate.py               # Model evaluation script
+│   └── visualization/            # Visualization modules
+│       ├── raw_data.py           # Raw data visualization
+│       ├── predict_efield.py     # Model prediction visualization
+│       └── training_curves.py    # Training/validation curves
 ├── scripts/                # CLI entry points for main tasks and visualization
 │   ├── generate_dataset.py       # Generate synthetic data
 │   ├── preprocess_dataset.py     # Preprocess data
@@ -129,13 +132,13 @@ python scripts/train_model.py --config configs/training_config.yaml
 
 **Training Pipeline:**
 - Automatically runs preprocessing if needed
-- Creates model from config (currently supports CNN3D)
+- Creates model from config (supports CNN3D and UNet3D)
 - Sets up data loaders, optimizer, scheduler, and loss function
 - Includes validation, checkpointing, early stopping, and logging
 - Saves best model, training history, and logs
 
 **Loss Function Configuration:**
-- Loss functions are now extensible and defined in `modeling/losses.py`.
+- Loss functions are extensible and defined in `modeling/loss.py`.
 - Standard losses: `mse`, `l1`/`mae`, `huber`.
 - Custom/combined losses can be specified in the config as a dict, e.g.:
 
@@ -148,7 +151,7 @@ training:
       - type: "l1"
     weights: [0.7, 0.3]
 ```
-- Add your own loss functions in `modeling/losses.py` and register them for use in config.
+- Add your own loss functions in `modeling/loss.py` and register them for use in config.
 
 **Key Features:**
 - **Model-agnostic:** Easily switch architectures via config
@@ -158,7 +161,7 @@ training:
 
 **Training Output:**
 - `saved_models/best_model.pth` - Best model checkpoint
-- `saved_models/latest_checkpoint.pth` - Latest model state
+- `saved_models/checkpoint_epoch_XXX.pth` - Periodic checkpoints
 - `saved_models/training_history.pkl` - Loss curves and metrics
 - `logs/training.log` - Detailed training logs
 
@@ -268,7 +271,7 @@ Use the same training and evaluation commands - the framework automatically uses
 
 ## 7. Visualization
 
-The repository provides a collection of interactive visualization tools to help you explore raw data, training progress, and model predictions. All tools are located in `evaluation/visualization_tools/` and can be used both via command-line scripts and as Python modules.
+The repository provides a collection of interactive visualization tools to help you explore raw data, training progress, and model predictions. All tools are located in `evaluation/visualization/` and can be used both via command-line scripts and as Python modules.
 
 ### Visualization Tools Overview
 

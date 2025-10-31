@@ -11,4 +11,5 @@ __pycache__/
 PRP.md
 TASK.md
 .pytest_cache/
-saved_models/*.pth
+saved_models/
+logs/

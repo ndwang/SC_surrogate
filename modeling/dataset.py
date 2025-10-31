@@ -50,6 +50,7 @@ class SpaceChargeDataset(Dataset[Tuple[torch.Tensor, torch.Tensor]]):
         self.h5_path = h5_path
         self.transform = transform
         self.device = device
+        self._h5 = None  # Will be opened lazily per worker
         
         # Open file once to get shape info, then close
         with h5py.File(h5_path, 'r') as h5_file:
@@ -65,6 +66,12 @@ class SpaceChargeDataset(Dataset[Tuple[torch.Tensor, torch.Tensor]]):
         logger.info(f"Loaded dataset: {self.num_samples} samples, grid shape {self.grid_shape}")
         logger.info("Charge density shape: (N, Nx, Ny, Nz)")
         logger.info("Electric field shape: (N, 3, Nx, Ny, Nz)")
+
+    def _ensure_open(self) -> None:
+        """Open the HDF5 file handle if not already open (per worker)."""
+        if self._h5 is None:
+            # libver='latest' can improve I/O performance; SWMR not needed for read-only single-writer
+            self._h5 = h5py.File(self.h5_path, 'r', libver='latest')
     
     def __len__(self) -> int:
         """Return the number of samples in the dataset."""
@@ -85,21 +92,17 @@ class SpaceChargeDataset(Dataset[Tuple[torch.Tensor, torch.Tensor]]):
         if idx >= self.num_samples:
             raise IndexError(f"Index {idx} out of range for dataset of size {self.num_samples}")
         
-        with h5py.File(self.h5_path, 'r') as h5_file:
-            # Lazy load data from HDF5
-            charge_density = h5_file['charge_density'][idx]  # shape: (Nx, Ny, Nz)
-            electric_field = h5_file['electric_field'][idx]  # shape: (3, Nx, Ny, Nz)
+        self._ensure_open()
+        # Lazy load data from HDF5 (numpy arrays)
+        charge_density = self._h5['charge_density'][idx]  # shape: (Nx, Ny, Nz)
+        electric_field = self._h5['electric_field'][idx]  # shape: (3, Nx, Ny, Nz)
         
-        # Convert to PyTorch tensors with correct dtype
-        input_tensor = torch.tensor(charge_density, dtype=torch.float32)
-        target_tensor = torch.tensor(electric_field, dtype=torch.float32)
+        # Convert to PyTorch tensors efficiently on CPU
+        input_tensor = torch.from_numpy(charge_density).float()
+        target_tensor = torch.from_numpy(electric_field).float()
         
         # Add channel dimension to input for CNN compatibility
         input_tensor = input_tensor.unsqueeze(0)  # shape: (1, Nx, Ny, Nz)
-        
-        # Move to specified device
-        input_tensor = input_tensor.to(self.device)
-        target_tensor = target_tensor.to(self.device)
         
         # Apply transforms if provided
         if self.transform:
@@ -107,9 +110,20 @@ class SpaceChargeDataset(Dataset[Tuple[torch.Tensor, torch.Tensor]]):
         
         return input_tensor, target_tensor
     
+    def __getstate__(self):
+        """Ensure file handle is not pickled when using worker processes."""
+        state = self.__dict__.copy()
+        state['_h5'] = None
+        return state
+
     def __del__(self) -> None:
         """Clean up HDF5 file handle."""
-        pass # No persistent file handle to close
+        try:
+            if getattr(self, '_h5', None) is not None:
+                self._h5.close()
+                self._h5 = None
+        except Exception:
+            pass
     
     def close(self) -> None:
         """Explicitly close the HDF5 file."""
@@ -218,26 +232,40 @@ def create_data_loaders(
     val_dataset = SpaceChargeDataset(val_path, device=device)
     test_dataset = SpaceChargeDataset(test_path, device=device)
     
-    # Create data loaders
+    # Create data loaders with performance-friendly flags
+    persistent = num_workers > 0
+    prefetch_train = 4 if num_workers > 0 else None
+    prefetch_eval = 2 if num_workers > 0 else None
+    
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
         batch_size=batch_size,
         shuffle=True,
-        num_workers=num_workers
+        num_workers=num_workers,
+        pin_memory=True,
+        persistent_workers=persistent,
+        prefetch_factor=prefetch_train,
+        drop_last=True,
     )
     
     val_loader = torch.utils.data.DataLoader(
         val_dataset,
         batch_size=batch_size,
         shuffle=False,
-        num_workers=num_workers
+        num_workers=max(1, num_workers // 2) if num_workers > 0 else 0,
+        pin_memory=True,
+        persistent_workers=persistent,
+        prefetch_factor=prefetch_eval,
     )
     
     test_loader = torch.utils.data.DataLoader(
         test_dataset,
         batch_size=batch_size,
         shuffle=False,
-        num_workers=num_workers
+        num_workers=max(1, num_workers // 2) if num_workers > 0 else 0,
+        pin_memory=True,
+        persistent_workers=persistent,
+        prefetch_factor=prefetch_eval,
     )
     
     logger.info(f"Created DataLoaders with batch_size={batch_size}")

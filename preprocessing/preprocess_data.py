@@ -148,17 +148,20 @@ class Preprocessor:
              h5py.File(output_path, 'w') as output_file:
             charge_density_shape = (len(indices), *grid_shape)
             electric_field_shape = (len(indices), 3, *grid_shape)
+            # Use sample-aligned chunking and fast LZF compression for faster reads
             charge_density_ds = output_file.create_dataset(
                 'charge_density',
                 shape=charge_density_shape,
                 dtype=np.float32,
-                compression='gzip'
+                chunks=(1, *grid_shape),
+                compression='lzf'
             )
             electric_field_ds = output_file.create_dataset(
                 'electric_field',
                 shape=electric_field_shape,
                 dtype=np.float32,
-                compression='gzip'
+                chunks=(1, 3, *grid_shape),
+                compression='lzf'
             )
             n = len(indices)
             for start in range(0, n, batch_size):

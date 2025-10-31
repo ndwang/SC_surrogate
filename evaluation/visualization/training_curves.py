@@ -13,6 +13,7 @@ def plot_training_curves(history_path):
     plt.plot(epochs[:len(val_losses)], val_losses, label='Validation Loss')
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
+    plt.yscale('log')
     plt.title('Training and Validation Loss Curves')
     plt.legend()
     plt.grid(True, alpha=0.3)

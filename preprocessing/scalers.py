@@ -58,17 +58,65 @@ class SymlogScaler(BaseEstimator, TransformerMixin):
         X = np.asarray(X)
         return np.sign(X) * (np.expm1(np.abs(X)) * self.linthresh_)
 
+class AsinhScaler(BaseEstimator, TransformerMixin):
+    """
+    Scaler that applies an inverse hyperbolic sine (asinh) transformation with a data-driven scale.
+
+    Transformation: x_scaled = asinh(x / C)
+    Fitting: C is set to the median of absolute values in the data (median(|x|)).
+
+    Notes
+    -----
+    - If median(|x|) == 0, a small fallback constant of 1e-6 is used and a warning is issued.
+    - After fitting, the chosen constant is stored as `scale_constant_`.
+    """
+    def __init__(self, scale_constant: Optional[float] = None):
+        self.scale_constant = scale_constant
+        self.fitted_ = False
+
+    @staticmethod
+    def compute_scale_constant(X: np.ndarray) -> float:
+        X = np.asarray(X)
+        median_abs = np.median(np.abs(X))
+        if median_abs == 0:
+            warnings.warn("Median of absolute values is zero; using fallback scale_constant=1e-6.")
+            return 1e-6
+        return float(median_abs)
+
+    def fit(self, X: Any, y: Any = None) -> 'AsinhScaler':
+        X = np.asarray(X)
+        if self.scale_constant is not None:
+            self.scale_constant_ = float(self.scale_constant)
+        else:
+            self.scale_constant_ = self.compute_scale_constant(X)
+        self.fitted_ = True
+        return self
+
+    def transform(self, X: Any) -> np.ndarray:
+        if not getattr(self, 'fitted_', False):
+            raise RuntimeError("AsinhScaler instance is not fitted yet. Call 'fit' before using this method.")
+        X = np.asarray(X)
+        return np.arcsinh(X / self.scale_constant_)
+
+    def inverse_transform(self, X: Any) -> np.ndarray:
+        if not getattr(self, 'fitted_', False):
+            raise RuntimeError("AsinhScaler instance is not fitted yet. Call 'fit' before using this method.")
+        X = np.asarray(X)
+        return np.sinh(X) * self.scale_constant_
+
 def get_scaler(name: str, **kwargs) -> Any:
     """
-    Return a scaler instance by name. Supported: 'standard', 'symlog'.
+    Return a scaler instance by name. Supported: 'standard', 'symlog', 'asinh'.
     """
     name = name.lower()
     if name == 'standard':
         return StandardScaler(**kwargs)
     elif name == 'symlog':
         return SymlogScaler(**kwargs)
+    elif name == 'asinh':
+        return AsinhScaler(**kwargs)
     else:
-        raise ValueError(f"Unknown scaler: {name}. Supported: 'standard', 'symlog'")
+        raise ValueError(f"Unknown scaler: {name}. Supported: 'standard', 'symlog', 'asinh'")
 
 def get_fitted_attributes(scaler):
     """

@@ -492,6 +492,8 @@ class Trainer:
 
                 # Save best model separately without writing a regular checkpoint
                 if is_best:
+                    # Update tracking so subsequent comparisons/logging are correct
+                    self.best_val_loss = val_loss
                     self.save_checkpoint(epoch, val_loss, is_best=True)
                 
                 # Log progress

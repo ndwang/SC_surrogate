@@ -300,11 +300,34 @@ python scripts/visualize_predict_efield.py data/processed/test.h5 --sample_idx 0
 python scripts/visualize_training_curves.py saved_models/training_history.pkl
 ```
 
-You can import and use all visualization functions directly in your Python scripts or notebooks:
-```python
-from evaluation.visualization_tools.raw_data import plot_density, plot_efield, plot_both
-from evaluation.visualization_tools.predict_efield import plot_prediction_vs_truth
+**Plot histogram of raw electric field values (unscaled) across all samples:**
+```bash
+# Use path from config
+python scripts/plot_raw_output_histogram.py --config configs/training_config.yaml --bins 200 --component all
+
+# Or provide raw file directly (positional argument)
+python scripts/plot_raw_output_histogram.py data/raw/SC_10k.h5 --bins 200 --component Ex --save saved_models/evaluation/plots/raw_Ex_hist.png
 ```
+ - `--config`: Uses `paths.raw_data_path` like `preprocess_data.py`
+ - Positional file argument: direct path to raw HDF5 (group-per-sample)
+ - `--bins`: Number of histogram bins
+ - `--component`: `all`, `Ex`, `Ey`, or `Ez`
+ - `--save`: Save plot to PNG instead of showing interactively
+
+## Visualize CNN3D Convolution Kernels
+
+You can visualize the learned convolutional kernels of a trained CNN3D model using the script:
+
+```bash
+python scripts/visualize_kernels.py --checkpoint saved_models/best_model.pth --config configs/training_config.yaml --layer_type encoder --layer_idx 0
+```
+
+- `--checkpoint`: Path to the model checkpoint (default: `saved_models/best_model.pth`)
+- `--config`: Path to the model config (default: `configs/training_config.yaml`)
+- `--layer_type`: `encoder` or `decoder` (default: `encoder`)
+- `--layer_idx`: Index of the layer to visualize (default: `0`)
+
+The script will display slices of each 3D kernel for the selected layer and channel.
 
 ---
 
@@ -325,6 +348,7 @@ from evaluation.visualization_tools.predict_efield import plot_prediction_vs_tru
 - **Preprocessing:** Split ratios, normalization, chunking
 - **Model:** Architecture, channels, layers, activation, dropout, etc.
 - **Training:** Batch size, epochs, optimizer, scheduler, loss, device
+- **Resume:** Optional resume-from-checkpoint settings
 - **Evaluation:** Metrics, plotting, saving predictions
 - **Logging:** Level, file, Tensorboard/W&B integration
 
@@ -332,6 +356,27 @@ from evaluation.visualization_tools.predict_efield import plot_prediction_vs_tru
 - Defines the beam/particle distribution for simulation (see file for details)
 
 ---
+
+## Resuming Training from a Checkpoint
+
+Enable resume behavior in `configs/training_config.yaml`:
+
+```yaml
+training:
+  resume:
+    enabled: true                 # enable resume behavior
+    checkpoint_path: saved_models/checkpoint_epoch_040.pth  # or null
+    use_best: false               # set true to resume from best_model.pth
+```
+
+Resolution order:
+- If `use_best: true`, the trainer loads `saved_models/best_model.pth`.
+- Else if `checkpoint_path` is provided, it loads that file.
+- Else it tries `saved_models/latest_checkpoint.pth`.
+
+Restored state:
+- Model weights, optimizer, scheduler, loss history, and epoch counter.
+- Training resumes from the next epoch after the checkpoint's `epoch`.
 
 ## Data Format
 

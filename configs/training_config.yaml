@@ -5,10 +5,10 @@
 # --- Path Configuration ---
 paths:
   # Raw data file with group-per-sample structure
-  raw_data_path: "data/raw/space_charge_data.h5"
+  raw_data_path: "data/raw/SC_10k.h5"
   
   # Directory for processed train/val/test data files
-  processed_dir: "data/processed/"
+  processed_dir: "data/processed/10k"
   
   # Directory for saving model checkpoints and scalers
   model_save_dir: "saved_models/"
@@ -24,14 +24,12 @@ preprocessing:
   # Random seed for reproducible data splitting
   split_seed: 42
   
-  # Scaler configuration for input and target (options: 'standard', 'symlog')
+  # Scaler configuration for input and target (options: 'standard', 'symlog', 'asinh')
   # Specify as a dictionary with 'type' and optional parameters:
   input_scaler:
-    type: 'standard'   # StandardScaler or SymlogScaler
+    type: 'standard'   # StandardScaler
   target_scaler:
-    type: 'symlog'     # StandardScaler or SymlogScaler
-    # linthresh: 0.005
-    # percentile: 90
+    type: 'asinh'     # StandardScaler or SymlogScaler or AsinhScaler
   
   # Whether to shuffle data before splitting
   shuffle_data: true
@@ -43,39 +41,44 @@ preprocessing:
 # --- Model Configuration ---
 model:
   # Model architecture type
-  architecture: "cnn3d"
+  architecture: "unet3d"
   
   # Input/output dimensions (will be determined from data)
   input_channels: 1  # charge density
   output_channels: 3  # electric field components (Ex, Ey, Ez)
   
   # Network hyperparameters
-  hidden_channels: [32, 64, 128, 64, 32]
-  kernel_size: 3
+  ## CNN3D only
+  hidden_channels: [32, 64, 128, 64, 32] 
   padding: 1
+
+  ## UNet3D only
+  depth: 4
+  initial_features: 32
+
+  ## Common
+  kernel_size: 3
   activation: "relu"
   batch_norm: true
   dropout_rate: 0.1
-  
-  # Model initialization
   weight_init: "kaiming_normal"
 
 # --- Training Configuration ---
 training:
   # Batch size for training
-  batch_size: 16
+  batch_size: 64
   
   # Number of training epochs
-  num_epochs: 100
+  num_epochs: 150
   
   # Learning rate and optimizer settings
-  learning_rate: 0.001
-  optimizer: "adam"
-  weight_decay: 1e-5
+  optimizer: "adamw"
+  learning_rate: 3e-4
+  weight_decay: 1e-4
   
   # Learning rate scheduler
   scheduler:
-    type: "plateau"  # Options: "plateau", "cosine", "step"
+    type: "cosine"  # Options: "plateau", "cosine", "step"
     patience: 10
     factor: 0.5
     min_lr: 1e-6
@@ -87,12 +90,20 @@ training:
   validation_frequency: 1  # Validate every N epochs
   save_frequency: 10       # Save checkpoint every N epochs
   early_stopping:
+    enabled: false
     patience: 20
     min_delta: 1e-6
   
   # Device configuration
   device: "auto"  # "auto", "cuda", "cpu"
   num_workers: 12  # For DataLoader
+
+  # Resume training options
+  resume:
+    enabled: false           # If true, attempt to resume training
+    checkpoint_path: null    # Optional explicit path to a checkpoint .pth
+    use_best: false          # If true, resume from best_model.pth in model_save_dir
+    # When both checkpoint_path and use_best are unset/false, no resume is attempted
 
 # --- Evaluation Configuration ---
 evaluation:

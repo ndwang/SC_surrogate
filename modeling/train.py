@@ -341,7 +341,12 @@ class Trainer:
         return total_loss / num_batches
     
     def save_checkpoint(self, epoch: int, val_loss: float, is_best: bool = False) -> None:
-        """Save model checkpoint."""
+        """Save model checkpoint.
+
+        When is_best is True, only the best model artifact is written.
+        Regular checkpoints are written only when explicitly requested
+        by the training loop (e.g., at save_frequency).
+        """
         save_dir = Path(self.config['paths']['model_save_dir'])
         save_dir.mkdir(parents=True, exist_ok=True)
         
@@ -356,23 +361,71 @@ class Trainer:
             'config': self.config
         }
         
-        # Save regular checkpoint
-        checkpoint_path = save_dir / f'checkpoint_epoch_{epoch:03d}.pth'
-        torch.save(checkpoint, checkpoint_path)
+        # Save regular checkpoint only when not saving best-only
+        if not is_best:
+            checkpoint_path = save_dir / f'checkpoint_epoch_{epoch:03d}.pth'
+            torch.save(checkpoint, checkpoint_path)
         
         # Save best model
         if is_best:
             best_path = save_dir / 'best_model.pth'
             torch.save(checkpoint, best_path)
             self.logger.info(f"New best model saved with validation loss: {val_loss:.6f}")
-        
-        # Save latest checkpoint
-        latest_path = save_dir / 'latest_checkpoint.pth'
-        torch.save(checkpoint, latest_path)
+
+    def maybe_resume_from_checkpoint(self) -> None:
+        """Resume training state from a checkpoint if enabled in config."""
+        training_config = self.config.get('training', {})
+        resume_cfg = training_config.get('resume', {}) or {}
+        enabled = bool(resume_cfg.get('enabled', False))
+        if not enabled:
+            return
+
+        save_dir = Path(self.config['paths']['model_save_dir'])
+        use_best = bool(resume_cfg.get('use_best', False))
+        checkpoint_path_cfg = resume_cfg.get('checkpoint_path')
+
+        if use_best:
+            checkpoint_path = save_dir / 'best_model.pth'
+        elif checkpoint_path_cfg:
+            checkpoint_path = Path(str(checkpoint_path_cfg))
+        else:
+            checkpoint_path = save_dir / 'latest_checkpoint.pth'
+
+        if not checkpoint_path.exists():
+            self.logger.warning(f"Resume enabled but checkpoint not found at: {checkpoint_path}")
+            return
+
+        self.logger.info(f"Resuming training from checkpoint: {checkpoint_path}")
+        checkpoint = torch.load(checkpoint_path, map_location=self.device)
+
+        # Restore model/optimizer/scheduler
+        if 'model_state_dict' in checkpoint:
+            self.model.load_state_dict(checkpoint['model_state_dict'])
+        if 'optimizer_state_dict' in checkpoint and self.optimizer is not None:
+            try:
+                self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+            except Exception:
+                self.logger.warning("Optimizer state could not be loaded; continuing with fresh optimizer")
+        if self.scheduler is not None and checkpoint.get('scheduler_state_dict'):
+            try:
+                self.scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
+            except Exception:
+                self.logger.warning("Scheduler state could not be loaded; continuing with fresh scheduler")
+
+        # Restore history and counters
+        self.current_epoch = int(checkpoint.get('epoch', -1)) + 1
+        self.train_losses = checkpoint.get('train_losses', []) or []
+        self.val_losses = checkpoint.get('val_losses', []) or []
+        self.best_val_loss = float(checkpoint.get('val_loss', self.best_val_loss))
+        self.logger.info(f"Resumed at epoch index {self.current_epoch} (next epoch = {self.current_epoch+1})")
     
     def check_early_stopping(self, val_loss: float) -> bool:
         """Check if early stopping criteria is met."""
         early_stop_config = self.config.get('training', {}).get('early_stopping', {})
+        # Allow disabling early stopping via config: training.early_stopping.enabled: false
+        enabled = bool(early_stop_config.get('enabled', True))
+        if not enabled:
+            return False
         patience = int(early_stop_config.get('patience', 20))
         min_delta = float(early_stop_config.get('min_delta', 1e-6))
         
@@ -404,8 +457,11 @@ class Trainer:
         
         start_time = time.time()
         
-        # Add outer progress bar for epochs
-        epoch_progress_bar = tqdm(range(num_epochs), desc="Epochs", position=0)
+        # Optionally resume from checkpoint
+        self.maybe_resume_from_checkpoint()
+
+        # Add outer progress bar for epochs (respect resume start)
+        epoch_progress_bar = tqdm(range(self.current_epoch, num_epochs), desc="Epochs", position=0)
         for epoch in epoch_progress_bar:
             self.current_epoch = epoch
             # Update outer bar description
@@ -430,9 +486,13 @@ class Trainer:
                 # Check if best model
                 is_best = val_loss < self.best_val_loss
                 
-                # Save checkpoint
-                if epoch % save_frequency == 0 or is_best:
-                    self.save_checkpoint(epoch, val_loss, is_best)
+                # Save regular checkpoint only at configured frequency
+                if epoch % save_frequency == 0:
+                    self.save_checkpoint(epoch, val_loss, is_best=False)
+
+                # Save best model separately without writing a regular checkpoint
+                if is_best:
+                    self.save_checkpoint(epoch, val_loss, is_best=True)
                 
                 # Log progress
                 current_lr = self.optimizer.param_groups[0]['lr']
@@ -456,13 +516,8 @@ class Trainer:
                     f"LR: {current_lr:.2e}"
                 )
         
-        # Final save
-        if len(self.val_losses) > 0:
-            final_val_loss = self.val_losses[-1]
-        else:
-            final_val_loss = self.validate(criterion)
-        
-        self.save_checkpoint(self.current_epoch, final_val_loss)
+        # No unconditional final regular checkpoint; regular checkpoints are only
+        # saved at configured frequency. Best model has already been saved when achieved.
         
         # Training summary
         total_time = time.time() - start_time

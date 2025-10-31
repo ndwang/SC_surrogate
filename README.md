@@ -293,7 +293,7 @@ python scripts/visualize_raw_data.py data/raw/simulations.h5 --plot both --run r
 
 **Visualize model predictions (compare or predict mode):**
 ```bash
-python scripts/visualize_predict_efield.py data/processed/test.h5 --sample_idx 0 --checkpoint saved_models/best_model.pth --scalers saved_models/scalers.pkl --config configs/training_config.yaml --mode compare
+python scripts/visualize_predict_efield.py data/processed/test.h5 --sample_idx 0 --checkpoint saved_models/best_model.pth --scalers data/processed/scalers.pkl --config configs/training_config.yaml --mode compare
 ```
 - `--mode compare`: Interactive comparison of predicted and ground truth E-field
 - `--mode predict`: Visualize charge density and predicted E-field only

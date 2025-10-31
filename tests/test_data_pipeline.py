@@ -179,7 +179,7 @@ def test_preprocess_data_script(setup_pipeline_test_data):
     train_path = os.path.join(processed_dir, "train.h5")
     val_path = os.path.join(processed_dir, "val.h5")
     test_path = os.path.join(processed_dir, "test.h5")
-    scaler_path = os.path.join(model_dir, "scalers.pkl")
+    scaler_path = os.path.join(processed_dir, "scalers.pkl")
     
     assert os.path.exists(train_path), "train.h5 was not created"
     assert os.path.exists(val_path), "val.h5 was not created"

@@ -199,7 +199,7 @@ class Preprocessor:
 
     def save_scalers(self):
         """Save fitted scalers to disk."""
-        scaler_path = os.path.join(self.paths['model_save_dir'], 'scalers.pkl')
+        scaler_path = os.path.join(self.paths['processed_dir'], 'scalers.pkl')
         scalers = {
             'input_scaler': self.input_scaler,
             'target_scaler': self.target_scaler

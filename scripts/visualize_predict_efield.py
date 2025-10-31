@@ -29,7 +29,7 @@ def main():
     parser = argparse.ArgumentParser(description='Predict and visualize electric field from a trained model checkpoint, with two modes: ef (efield vs ground truth) and rho (charge density vs prediction).')
     parser.add_argument('test_file', type=str, help='Path to processed test set (e.g., data/processed/test.h5)')
     parser.add_argument('--checkpoint', type=str, default='saved_models/best_model.pth', help='Path to model checkpoint')
-    parser.add_argument('--scalers', type=str, default='saved_models/scalers.pkl', help='Path to scalers.pkl for denormalization')
+    parser.add_argument('--scalers', type=str, default='data/processed/scalers.pkl', help='Path to scalers.pkl for denormalization')
     parser.add_argument('--config', type=str, default='configs/training_config.yaml', help='Path to training config')
     parser.add_argument('--sample_idx', type=int, default=0, help='Sample index from processed test set to visualize')
     parser.add_argument('--mode', type=str, choices=['compare', 'predict'], default='compare',

@@ -13,6 +13,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from typing import Dict, Any, List, Tuple
 import logging
+from .activations import get_activation
 
 logger = logging.getLogger(__name__)
 
@@ -51,20 +52,9 @@ class EncoderBlock(nn.Module):
         self.batch_norm = nn.BatchNorm3d(out_channels) if use_batch_norm else nn.Identity()
         self.dropout = nn.Dropout3d(dropout_rate) if dropout_rate > 0 else nn.Identity()
         self.pool = nn.MaxPool3d(2, stride=2)
-        self.activation = activation
+        self.activation = get_activation(activation)
     
-    def _get_activation(self, x: torch.Tensor) -> torch.Tensor:
-        """Apply activation function."""
-        if self.activation.lower() == 'relu':
-            return F.relu(x)
-        elif self.activation.lower() == 'leaky_relu':
-            return F.leaky_relu(x)
-        elif self.activation.lower() == 'elu':
-            return F.elu(x)
-        elif self.activation.lower() == 'gelu':
-            return F.gelu(x)
-        else:
-            return F.relu(x)  # Default fallback
+    
     
     def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """
@@ -76,7 +66,7 @@ class EncoderBlock(nn.Module):
         # Convolution, normalization, activation, dropout
         x = self.conv(x)
         x = self.batch_norm(x)
-        x = self._get_activation(x)
+        x = self.activation(x)
         skip = x.clone()  # Save for skip connection before dropout and pooling
         x = self.dropout(x)
         
@@ -130,20 +120,9 @@ class DecoderBlock(nn.Module):
         
         self.batch_norm = nn.BatchNorm3d(out_channels) if use_batch_norm else nn.Identity()
         self.dropout = nn.Dropout3d(dropout_rate) if dropout_rate > 0 else nn.Identity()
-        self.activation = activation
+        self.activation = get_activation(activation)
     
-    def _get_activation(self, x: torch.Tensor) -> torch.Tensor:
-        """Apply activation function."""
-        if self.activation.lower() == 'relu':
-            return F.relu(x)
-        elif self.activation.lower() == 'leaky_relu':
-            return F.leaky_relu(x)
-        elif self.activation.lower() == 'elu':
-            return F.elu(x)
-        elif self.activation.lower() == 'gelu':
-            return F.gelu(x)
-        else:
-            return F.relu(x)  # Default fallback
+    
     
     def forward(self, x: torch.Tensor, skip: torch.Tensor) -> torch.Tensor:
         """
@@ -171,7 +150,7 @@ class DecoderBlock(nn.Module):
         # Convolution, normalization, activation, dropout
         x = self.conv(x)
         x = self.batch_norm(x)
-        x = self._get_activation(x)
+        x = self.activation(x)
         x = self.dropout(x)
         
         return x

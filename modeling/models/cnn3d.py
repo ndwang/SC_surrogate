@@ -11,6 +11,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from typing import Dict, Any
 import logging
+from .activations import get_activation
 
 logger = logging.getLogger(__name__)
 
@@ -39,10 +40,11 @@ class CNN3D(nn.Module):
         self.hidden_channels = model_config.get('hidden_channels', [32, 64, 128, 64, 32])
         self.kernel_size = model_config.get('kernel_size', 3)
         self.padding = model_config.get('padding', 1)
-        self.activation = model_config.get('activation', 'relu')
         self.use_batch_norm = model_config.get('batch_norm', True)
         self.dropout_rate = model_config.get('dropout_rate', 0.1)
         self.weight_init = model_config.get('weight_init', 'kaiming_normal')
+        self.activation_name = model_config.get('activation', 'relu')
+        self.activation = get_activation(self.activation_name)
         
         # Build the network layers
         self.encoder_layers = nn.ModuleList()
@@ -138,20 +140,6 @@ class CNN3D(nn.Module):
                 nn.init.constant_(module.weight, 1)
                 nn.init.constant_(module.bias, 0)
     
-    def _get_activation(self) -> nn.Module:
-        """Get the activation function based on config."""
-        if self.activation.lower() == 'relu':
-            return F.relu
-        elif self.activation.lower() == 'leaky_relu':
-            return F.leaky_relu
-        elif self.activation.lower() == 'elu':
-            return F.elu
-        elif self.activation.lower() == 'gelu':
-            return F.gelu
-        else:
-            logger.warning(f"Unknown activation {self.activation}, using ReLU")
-            return F.relu
-    
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         Forward pass through the 3D CNN.
@@ -162,8 +150,6 @@ class CNN3D(nn.Module):
         Returns:
             Output tensor of shape (batch_size, 3, Nx, Ny, Nz)
         """
-        activation_fn = self._get_activation()
-        
         # Store intermediate features for potential residual connections
         encoder_features = []
         
@@ -177,7 +163,7 @@ class CNN3D(nn.Module):
             current = F.pad(current, pad_tuple, mode='reflect')
             current = conv_layer(current)
             current = self.batch_norm_layers[bn_idx](current)
-            current = activation_fn(current)
+            current = self.activation(current)
             current = self.dropout_layers[dropout_idx](current)
             
             encoder_features.append(current)
@@ -192,7 +178,7 @@ class CNN3D(nn.Module):
             # Apply batch norm and activation for all layers except the last
             if i < len(self.decoder_layers) - 1:
                 current = self.batch_norm_layers[bn_idx](current)
-                current = activation_fn(current)
+                current = self.activation(current)
                 current = self.dropout_layers[dropout_idx](current)
                 bn_idx += 1
                 dropout_idx += 1
@@ -211,7 +197,7 @@ class CNN3D(nn.Module):
             'hidden_channels': self.hidden_channels,
             'kernel_size': self.kernel_size,
             'padding': self.padding,
-            'activation': self.activation,
+            'activation': self.activation_name,
             'batch_norm': self.use_batch_norm,
             'dropout_rate': self.dropout_rate,
             'weight_init': self.weight_init,

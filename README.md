@@ -37,6 +37,7 @@ SC_surrogate/
 │   ├── models/             # Neural network model definitions
 │   │   ├── __init__.py           # Model registry and factory
 │   │   ├── cnn3d.py              # 3D CNN architecture
+│   │   ├── unet3d.py             # 3D U-Net architecture
 │   │   └── vae2d.py              # 2D Variational Autoencoder (15-channel inputs)
 │   ├── dataset.py          # PyTorch Dataset & DataLoader utilities
 │   └── train.py            # Model training script
@@ -355,22 +356,6 @@ The script will display slices of each 3D kernel for the selected layer and chan
 - **Resume:** Optional resume-from-checkpoint settings
 - **Evaluation:** Metrics, plotting, saving predictions
 - **Logging:** Level, file, Tensorboard/W&B integration
-
-Example VAE2D model configuration:
-
-```yaml
-model:
-  architecture: "vae2d"
-  input_channels: 15           # 15 2D images as channels
-  hidden_channels: [32, 64, 128]
-  latent_dim: 64
-  kernel_size: 3
-  padding: 1                   # used for reflect padding before convs
-  activation: relu             # relu | leaky_relu | elu | gelu
-  batch_norm: true
-  dropout_rate: 0.1
-  weight_init: kaiming_normal  # kaiming_normal | xavier_normal | xavier_uniform
-```
 
 ### Distgen Template (`configs/distgen_template.yaml`)
 - Defines the beam/particle distribution for simulation (see file for details)

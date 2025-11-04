@@ -23,12 +23,18 @@ except ImportError:
     # Fallback for direct execution
     from unet3d import UNet3D  # type: ignore
 
+try:
+    from .vae2d import VAE2D
+except ImportError:
+    from vae2d import VAE2D  # type: ignore
+
 logger = logging.getLogger(__name__)
 
 # Registry mapping model names to their classes
 MODEL_REGISTRY: Dict[str, Type[nn.Module]] = {
     'cnn3d': CNN3D,
     'unet3d': UNet3D,
+    'vae2d': VAE2D,
 }
 
 

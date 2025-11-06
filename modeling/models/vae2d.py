@@ -144,7 +144,7 @@ class VAE2D(nn.Module):
     Config fields (under config['model']):
         input_channels, hidden_channels, latent_dim, input_size, kernel_size,
         padding, activation, batch_norm, dropout_rate, weight_init,
-        output_activation
+        output_activation, use_reparameterization
     """
 
     def __init__(self, config: Dict[str, Any]) -> None:
@@ -161,6 +161,7 @@ class VAE2D(nn.Module):
         dropout_rate = float(model_config.get('dropout_rate', 0.0))
         self.weight_init = str(model_config.get('weight_init', 'kaiming_normal'))
         output_activation_name: Optional[str] = model_config.get('output_activation', None)
+        self.use_reparameterization = bool(model_config.get('use_reparameterization', True))
 
         if self.input_size % (2 ** len(hidden_channels)) != 0:
             raise ValueError(
@@ -199,33 +200,35 @@ class VAE2D(nn.Module):
         # Decoder blocks
         self.decoder_blocks: nn.ModuleList = nn.ModuleList()
         rev_channels = list(reversed(hidden_channels))
-        for i in range(len(rev_channels) - 1):
-            self.decoder_blocks.append(
-                DecoderBlock2D(
-                    in_channels=rev_channels[i],
-                    out_channels=rev_channels[i + 1],
-                    kernel_size=kernel_size,
-                    activation=activation,
-                    batch_norm=batch_norm,
-                    dropout_rate=dropout_rate,
-                    upsample_mode='bilinear',
-                )
+        in_ch = rev_channels[0]
+        for out_ch in rev_channels[1:]:
+            block = DecoderBlock2D(
+                in_channels=in_ch,
+                out_channels=out_ch,
+                kernel_size=kernel_size,
+                activation=activation,
+                batch_norm=batch_norm,
+                dropout_rate=dropout_rate,
+                upsample_mode='bilinear',
             )
+            self.decoder_blocks.append(block)
+            in_ch = out_ch
 
         # Final conv to get back to input channels
         self.final_conv = nn.Conv2d(rev_channels[-1], self.input_channels, kernel_size=kernel_size, stride=1, padding=kernel_size // 2)
 
-        if output_activation_name is None:
-            self.output_activation = nn.Identity()
-        elif output_activation_name == 'sigmoid':
-            self.output_activation = nn.Sigmoid()
-        elif output_activation_name == 'tanh':
-            self.output_activation = nn.Tanh()
-        else:
-            raise ValueError(f"Unsupported output_activation: {output_activation_name}")
+        # Output activation
+        self.output_activation = get_activation(output_activation_name)
 
         # Initialize weights
         self._initialize_weights()
+
+        # Log model info
+        summary = self.get_model_summary()
+        logger.info(f"VAE2D initialized with {summary['total_parameters']:,} total parameters")
+        logger.info(f"Trainable parameters: {summary['trainable_parameters']:,}")
+        logger.info(f"Architecture: {self.input_channels} channels -> {' -> '.join(map(str, hidden_channels))} -> latent_dim={self.latent_dim} -> {self.input_channels} channels")
+        logger.info(f"Input size: {self.input_size}x{self.input_size}, Decoder start size: {self.decoder_start_hw}x{self.decoder_start_hw}")
 
     def encode(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         # Encoder path
@@ -257,7 +260,10 @@ class VAE2D(nn.Module):
 
     def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         mu, logvar = self.encode(x)
-        z = self.reparameterize(mu, logvar)
+        if self.use_reparameterization:
+            z = self.reparameterize(mu, logvar)
+        else:
+            z = mu
         recon = self.decode(z)
         return recon, mu, logvar
 
@@ -277,16 +283,7 @@ class VAE2D(nn.Module):
     def _initialize_weights(self) -> None:
         """Initialize model weights according to selected method."""
         for module in self.modules():
-            if isinstance(module, (nn.Conv2d, nn.ConvTranspose2d)):
-                if self.weight_init == 'kaiming_normal':
-                    nn.init.kaiming_normal_(module.weight, nonlinearity='relu')
-                elif self.weight_init == 'xavier_normal':
-                    nn.init.xavier_normal_(module.weight)
-                elif self.weight_init == 'xavier_uniform':
-                    nn.init.xavier_uniform_(module.weight)
-                if getattr(module, 'bias', None) is not None:
-                    nn.init.constant_(module.bias, 0)
-            elif isinstance(module, nn.Linear):
+            if isinstance(module, (nn.Conv2d, nn.ConvTranspose2d, nn.Linear)):
                 if self.weight_init == 'kaiming_normal':
                     nn.init.kaiming_normal_(module.weight, nonlinearity='relu')
                 elif self.weight_init == 'xavier_normal':

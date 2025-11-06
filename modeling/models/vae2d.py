@@ -49,7 +49,7 @@ class EncoderBlock2D(nn.Module):
         downsample: bool = True,
     ) -> None:
         super().__init__()
-        # Store activation as a module via shared utility
+        
         self.activation = get_activation(activation)
         padding = kernel_size // 2
 
@@ -102,7 +102,7 @@ class DecoderBlock2D(nn.Module):
     ) -> None:
         super().__init__()
 
-        # Store activation as a module via shared utility
+        
         self.activation = get_activation(activation)
         padding = kernel_size // 2
 
@@ -175,7 +175,7 @@ class VAE2D(nn.Module):
             self.encoder_blocks.append(block)
             in_ch = out_ch
 
-        # Bottleneck heads (assume fixed input size; no global pooling)
+        # Bottleneck heads
         self.decoder_start_hw: int = self.input_size // (2 ** len(hidden_channels))
         bottleneck_features = hidden_channels[-1] * self.decoder_start_hw * self.decoder_start_hw
         # Final projection to latent-dim space before parameter heads
@@ -294,11 +294,12 @@ if __name__ == "__main__":
             'latent_dim': 64,
             'input_size': 64,
             'kernel_size': 3,
-            'padding': 1,
             'activation': 'relu',
             'batch_norm': True,
             'dropout_rate': 0.0,
             'weight_init': 'kaiming_normal'
+            'output_activation': 'sigmoid'
+            'use_reparameterization': True
         }
     }
 

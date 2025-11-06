@@ -24,8 +24,7 @@ class EncoderBlock2D(nn.Module):
     Encoder block for 2D inputs using Conv2d downsampling.
 
     Structure:
-        [ReflectPad] -> Conv2d(stride=2 if downsample) -> [BN] -> Act -> [Dropout]
-        -> [ReflectPad] -> Conv2d -> [BN] -> Act
+        [ReflectPad] -> Conv2d(stride=2 if downsample) -> [BN] -> Act -> [Dropout] -> Downsample(x2)
 
     Args:
         in_channels: Number of input channels
@@ -53,7 +52,6 @@ class EncoderBlock2D(nn.Module):
         self.activation = get_activation(activation)
         padding = kernel_size // 2
 
-        # Convolve first (stride=1), then apply optional strided Conv2d downsampling
         self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=1, padding=padding, bias=not batch_norm)
         self.bn1 = nn.BatchNorm2d(out_channels) if batch_norm else nn.Identity()
         self.dropout = nn.Dropout2d(dropout_rate) if dropout_rate and dropout_rate > 0 else nn.Identity()
@@ -63,6 +61,7 @@ class EncoderBlock2D(nn.Module):
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # Convolve first, then downsample
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.activation(x)
@@ -77,7 +76,6 @@ class DecoderBlock2D(nn.Module):
 
     Structure:
         Upsample(x2) -> [ReflectPad] -> Conv2d -> [BN] -> Act -> [Dropout]
-        -> [ReflectPad] -> Conv2d -> [BN] -> Act
 
     Args:
         in_channels: Number of input channels
@@ -106,18 +104,18 @@ class DecoderBlock2D(nn.Module):
         self.activation = get_activation(activation)
         padding = kernel_size // 2
 
+        self.upsample = nn.Upsample(scale_factor=2, mode=upsample_mode, align_corners=False if upsample_mode == 'bilinear' else None)
         self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=1, padding=padding, bias=not batch_norm)
         self.bn1 = nn.BatchNorm2d(out_channels) if batch_norm else nn.Identity()
         self.dropout = nn.Dropout2d(dropout_rate) if dropout_rate and dropout_rate > 0 else nn.Identity()
-        self.upsample = nn.Upsample(scale_factor=2, mode=upsample_mode, align_corners=False if upsample_mode == 'bilinear' else None)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        # Convolve first, then upsample
+        # Upsample first, then convolve
+        x = self.upsample(x)
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.activation(x)
         x = self.dropout(x)
-        x = self.upsample(x)
         return x
 
 

@@ -57,8 +57,6 @@ class EncoderBlock2D(nn.Module):
         self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=1, padding=padding, bias=not batch_norm)
         self.bn1 = nn.BatchNorm2d(out_channels) if batch_norm else nn.Identity()
         self.dropout = nn.Dropout2d(dropout_rate) if dropout_rate and dropout_rate > 0 else nn.Identity()
-        self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size=kernel_size, stride=1, padding=padding, bias=not batch_norm)
-        self.bn2 = nn.BatchNorm2d(out_channels) if batch_norm else nn.Identity()
         self.downsample_conv = (
             nn.Conv2d(out_channels, out_channels, kernel_size=2, stride=2, padding=0, bias=True)
             if downsample else nn.Identity()
@@ -69,9 +67,6 @@ class EncoderBlock2D(nn.Module):
         x = self.bn1(x)
         x = self.activation(x)
         x = self.dropout(x)
-        x = self.conv2(x)
-        x = self.bn2(x)
-        x = self.activation(x)
         x = self.downsample_conv(x)
         return x
 
@@ -114,8 +109,6 @@ class DecoderBlock2D(nn.Module):
         self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=1, padding=padding, bias=not batch_norm)
         self.bn1 = nn.BatchNorm2d(out_channels) if batch_norm else nn.Identity()
         self.dropout = nn.Dropout2d(dropout_rate) if dropout_rate and dropout_rate > 0 else nn.Identity()
-        self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size=kernel_size, stride=1, padding=padding, bias=not batch_norm)
-        self.bn2 = nn.BatchNorm2d(out_channels) if batch_norm else nn.Identity()
         self.upsample = nn.Upsample(scale_factor=2, mode=upsample_mode, align_corners=False if upsample_mode == 'bilinear' else None)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -124,9 +117,6 @@ class DecoderBlock2D(nn.Module):
         x = self.bn1(x)
         x = self.activation(x)
         x = self.dropout(x)
-        x = self.conv2(x)
-        x = self.bn2(x)
-        x = self.activation(x)
         x = self.upsample(x)
         return x
 

@@ -69,7 +69,7 @@ training:
   batch_size: 64
   
   # Number of training epochs
-  num_epochs: 150
+  num_epochs: 300
   
   # Learning rate and optimizer settings
   optimizer: "adamw"
@@ -124,7 +124,4 @@ logging:
   log_to_file: true
   log_filename: "training.log"
   
-  # Tensorboard/Weights & Biases integration
-  use_tensorboard: false
-  use_wandb: false
   project_name: "space_charge_surrogate" 

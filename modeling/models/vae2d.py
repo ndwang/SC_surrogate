@@ -234,8 +234,17 @@ class VAE2D(nn.Module):
             self.decoder_blocks.append(block)
             in_ch = out_ch
 
-        # Final conv to get back to input channels
-        self.final_conv = nn.Conv2d(rev_channels[-1], self.input_channels, kernel_size=kernel_size, stride=1, padding=kernel_size // 2)
+        self.decoder_blocks.append(
+            DecoderBlock2D(
+                in_channels=rev_channels[-1],
+                out_channels=self.input_channels,
+                kernel_size=kernel_size,
+                activation=activation,
+                batch_norm=batch_norm,
+                dropout_rate=dropout_rate,
+                upsample_mode='bilinear',
+            )
+        )
 
         # Output normalization: softplus followed by divisive normalization per channel
         self.output_normalization = SoftplusDivisiveNormalization()
@@ -275,7 +284,6 @@ class VAE2D(nn.Module):
         current = h
         for block in self.decoder_blocks:
             current = block(current)
-        current = self.final_conv(current)
         return self.output_normalization(current)
 
     def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:

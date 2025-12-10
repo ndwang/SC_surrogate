@@ -19,6 +19,39 @@ from .activations import get_activation
 logger = logging.getLogger(__name__)
 
 
+class SoftplusDivisiveNormalization(nn.Module):
+    """
+    Applies softplus activation followed by divisive normalization per channel.
+    
+    The normalization divides each channel by its sum across spatial dimensions (H, W),
+    ensuring that each channel sums to 1 (after softplus).
+    
+    Note: No epsilon is needed since softplus is strictly positive.
+    """
+    
+    def __init__(self) -> None:
+        super().__init__()
+        self.softplus = nn.Softplus()
+    
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Args:
+            x: Input tensor of shape (batch, channels, H, W)
+            
+        Returns:
+            Normalized tensor of same shape
+        """
+        # Apply softplus
+        x = self.softplus(x)
+        
+        # Divisive normalization per channel
+        # Sum across spatial dimensions (H, W), keep channel dimension
+        channel_sum = x.sum(dim=(2, 3), keepdim=True)
+        x = x / channel_sum
+        
+        return x
+
+
 class EncoderBlock2D(nn.Module):
     """
     Encoder block for 2D inputs using Conv2d downsampling.
@@ -132,7 +165,7 @@ class VAE2D(nn.Module):
     Config fields (under config['model']):
         input_channels, hidden_channels, latent_dim, input_size, kernel_size,
         padding, activation, batch_norm, dropout_rate, weight_init,
-        output_activation, use_reparameterization
+        use_reparameterization
     """
 
     def __init__(self, config: Dict[str, Any]) -> None:
@@ -140,7 +173,7 @@ class VAE2D(nn.Module):
         model_config = config.get('model', {})
 
         self.input_channels = int(model_config.get('input_channels', 15))
-        hidden_channels: List[int] = list(model_config.get('hidden_channels', [32, 64, 128]))
+        hidden_channels: List[int] = list(model_config.get('hidden_channels', [32, 64]))
         self.latent_dim = int(model_config.get('latent_dim', 64))
         self.input_size = int(model_config.get('input_size', 64))  # assumes square input
         kernel_size = int(model_config.get('kernel_size', 3))
@@ -148,7 +181,6 @@ class VAE2D(nn.Module):
         batch_norm = bool(model_config.get('batch_norm', True))
         dropout_rate = float(model_config.get('dropout_rate', 0.0))
         self.weight_init = str(model_config.get('weight_init', 'kaiming_normal'))
-        output_activation_name: Optional[str] = model_config.get('output_activation', None)
         self.use_reparameterization = bool(model_config.get('use_reparameterization', True))
 
         if self.input_size % (2 ** len(hidden_channels)) != 0:
@@ -205,8 +237,8 @@ class VAE2D(nn.Module):
         # Final conv to get back to input channels
         self.final_conv = nn.Conv2d(rev_channels[-1], self.input_channels, kernel_size=kernel_size, stride=1, padding=kernel_size // 2)
 
-        # Output activation
-        self.output_activation = get_activation(output_activation_name)
+        # Output normalization: softplus followed by divisive normalization per channel
+        self.output_normalization = SoftplusDivisiveNormalization()
 
         # Initialize weights
         self._initialize_weights()
@@ -244,7 +276,7 @@ class VAE2D(nn.Module):
         for block in self.decoder_blocks:
             current = block(current)
         current = self.final_conv(current)
-        return self.output_activation(current)
+        return self.output_normalization(current)
 
     def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         mu, logvar = self.encode(x)
@@ -288,15 +320,14 @@ if __name__ == "__main__":
     test_config = {
         'model': {
             'input_channels': 15,
-            'hidden_channels': [32, 64, 128],
+            'hidden_channels': [32, 64],
             'latent_dim': 64,
             'input_size': 64,
             'kernel_size': 3,
             'activation': 'relu',
             'batch_norm': True,
             'dropout_rate': 0.0,
-            'weight_init': 'kaiming_normal'
-            'output_activation': 'sigmoid'
+            'weight_init': 'kaiming_normal',
             'use_reparameterization': True
         }
     }
@@ -311,4 +342,3 @@ if __name__ == "__main__":
         recon, mu, logvar = model(x)
         print(f"Recon shape: {recon.shape}")
         print(f"Mu shape: {mu.shape}, LogVar shape: {logvar.shape}")
-

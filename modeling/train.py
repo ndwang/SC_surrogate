@@ -22,9 +22,8 @@ import pickle
 project_root = Path(__file__).parent.parent.absolute()
 sys.path.append(str(project_root))
 
-from modeling.models import create_model_from_config  # noqa: E402
-from modeling.dataset import create_data_loaders  # noqa: E402
-from preprocessing.preprocess_data import Preprocessor  # noqa: E402
+from modeling.models import create_model_from_config
+from modeling.dataset import create_data_loaders, DATASET_REGISTRY
 from modeling.loss import get_loss_from_config
 
 
@@ -153,32 +152,35 @@ class Trainer:
         
         return logger
     
-    def _ensure_data_processed(self) -> None:
-        """Ensure preprocessed data exists, run preprocessing if needed."""
-        processed_dir = Path(self.config['paths']['processed_dir'])
-        
-        # Check if processed data exists
-        train_file = processed_dir / 'train.h5'
-        val_file = processed_dir / 'val.h5'
-        test_file = processed_dir / 'test.h5'
-        
-        if not (train_file.exists() and val_file.exists() and test_file.exists()):
-            self.logger.info("Processed data not found, running preprocessing...")
-            preprocessor = Preprocessor(self.config_path)
-            preprocessor.run()
-            self.logger.info("Preprocessing completed")
-        else:
-            self.logger.info("Using existing processed data")
-    
     def setup_data(self) -> None:
-        """Setup data loaders."""
-        self._ensure_data_processed()
+        """Setup data loaders."""        
+        # Get dataset type from config
+        dataset_config = self.config.get('dataset', {})
+        dataset_type = dataset_config.get('type', 'space_charge')
         
-        # Get paths
+        # Validate dataset type
+        if dataset_type not in DATASET_REGISTRY:
+            raise ValueError(
+                f"Unknown dataset type: {dataset_type}. "
+                f"Supported types: {list(DATASET_REGISTRY.keys())}"
+            )
+        
+        # Get filenames from config (required)
+        train_filename = dataset_config.get('train_filename')
+        val_filename = dataset_config.get('val_filename')
+        test_filename = dataset_config.get('test_filename')
+        
+        if not all([train_filename, val_filename, test_filename]):
+            raise ValueError(
+                "All dataset filenames must be specified: "
+                "train_filename, val_filename, test_filename"
+            )
+        
+        # Build paths using processed_dir + filenames
         processed_dir = Path(self.config['paths']['processed_dir'])
-        train_path = str(processed_dir / 'train.h5')
-        val_path = str(processed_dir / 'val.h5')
-        test_path = str(processed_dir / 'test.h5')
+        train_path = str(processed_dir / train_filename)
+        val_path = str(processed_dir / val_filename)
+        test_path = str(processed_dir / test_filename)
         
         # Get training config
         training_config = self.config.get('training', {})
@@ -186,16 +188,32 @@ class Trainer:
         num_workers = int(training_config.get('num_workers', 4))
         
         # Create data loaders
-        self.train_loader, self.val_loader, self.test_loader = create_data_loaders(
-            train_path=train_path,
-            val_path=val_path,
-            test_path=test_path,
+        self.train_loader = create_data_loaders(
+            data_path=train_path,
+            dataset_type=dataset_type,
             batch_size=batch_size,
             num_workers=num_workers,
-            device='cpu'  # Move to GPU in training loop
+            device='cpu',  # Move to GPU in training loop
+            shuffle=True
+        )
+        self.val_loader = create_data_loaders(
+            data_path=val_path,
+            dataset_type=dataset_type,
+            batch_size=batch_size,
+            num_workers=num_workers,
+            device='cpu',
+            shuffle=False
+        )
+        self.test_loader = create_data_loaders(
+            data_path=test_path,
+            dataset_type=dataset_type,
+            batch_size=batch_size,
+            num_workers=num_workers,
+            device='cpu',
+            shuffle=False
         )
         
-        self.logger.info("Data loaders created:")
+        self.logger.info(f"Data loaders created for dataset type: {dataset_type}")
         self.logger.info(f"  Train: {len(self.train_loader)} batches")
         self.logger.info(f"  Validation: {len(self.val_loader)} batches")
         self.logger.info(f"  Test: {len(self.test_loader)} batches")
@@ -289,16 +307,27 @@ class Trainer:
         total_loss = 0.0
         num_batches = len(self.train_loader)
         
+        # Get dataset type to handle different data formats
+        dataset_type = self.config.get('dataset', {}).get('type', 'space_charge')
+        
         progress_bar = tqdm(
             self.train_loader, 
             desc=f"Epoch {self.current_epoch+1}",
             leave=False
         )
         
-        for batch_idx, (inputs, targets) in enumerate(progress_bar):
-            # Move data to device
-            inputs = inputs.to(self.device, non_blocking=True)
-            targets = targets.to(self.device, non_blocking=True)
+        for batch_idx, batch_data in enumerate(progress_bar):
+            # Handle different dataset return types
+            if dataset_type == 'frequency_map':
+                # FrequencyMapDataset returns a single tensor (for VAE/reconstruction)
+                # Use the same data as both input and target
+                inputs = batch_data.to(self.device, non_blocking=True)
+                targets = inputs  # For reconstruction tasks
+            else:
+                # SpaceChargeDataset returns (input, target) tuple
+                inputs, targets = batch_data
+                inputs = inputs.to(self.device, non_blocking=True)
+                targets = targets.to(self.device, non_blocking=True)
             
             # Zero gradients
             self.optimizer.zero_grad()
@@ -328,10 +357,22 @@ class Trainer:
         total_loss = 0.0
         num_batches = len(self.val_loader)
         
+        # Get dataset type to handle different data formats
+        dataset_type = self.config.get('dataset', {}).get('type', 'space_charge')
+        
         with torch.no_grad():
-            for inputs, targets in self.val_loader:
-                inputs = inputs.to(self.device, non_blocking=True)
-                targets = targets.to(self.device, non_blocking=True)
+            for batch_data in self.val_loader:
+                # Handle different dataset return types
+                if dataset_type == 'frequency_map':
+                    # FrequencyMapDataset returns a single tensor (for VAE/reconstruction)
+                    # Use the same data as both input and target
+                    inputs = batch_data.to(self.device, non_blocking=True)
+                    targets = inputs  # For reconstruction tasks
+                else:
+                    # SpaceChargeDataset returns (input, target) tuple
+                    inputs, targets = batch_data
+                    inputs = inputs.to(self.device, non_blocking=True)
+                    targets = targets.to(self.device, non_blocking=True)
                 
                 outputs = self.model(inputs)
                 loss = criterion(outputs, targets)

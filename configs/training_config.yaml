@@ -63,6 +63,16 @@ model:
   dropout_rate: 0.1
   weight_init: "kaiming_normal"
 
+# --- Dataset Configuration ---
+dataset:
+  # Dataset type: "space_charge" or "frequency_map"
+  type: "space_charge"  # Options: "space_charge", "frequency_map"
+  
+  # Filenames for train/val/test splits (relative to processed_dir)
+  train_filename: "train.h5"
+  val_filename: "val.h5"
+  test_filename: "test.h5"
+
 # --- Training Configuration ---
 training:
   # Batch size for training

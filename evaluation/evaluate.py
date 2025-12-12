@@ -188,13 +188,12 @@ class Evaluator:
         num_workers = training_config.get('num_workers', 4)
         
         # Create data loaders
-        _, _, self.test_loader = create_data_loaders(
-            train_path=train_path,
-            val_path=val_path,
-            test_path=test_path,
+        self.test_loader = create_data_loaders(
+            data_path=test_path,
             batch_size=batch_size,
             num_workers=num_workers,
-            device='cpu'  # Move to GPU during evaluation
+            device='cpu',
+            shuffle=False
         )
         
         self.logger.info(f"Test loader created: {len(self.test_loader)} batches")

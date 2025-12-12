@@ -1,4 +1,4 @@
-﻿# Space Charge Surrogate Model
+# Space Charge Surrogate Model
 
 A PyTorch-based surrogate model for space charge simulation, enabling rapid approximation of electric field calculations from charge density distributions. This repository provides a full pipeline: data generation (with Julia/Distgen), preprocessing, model training, evaluation, and visualization.
 
@@ -209,12 +209,9 @@ dataset = SpaceChargeDataset('data/processed/train.h5')
 input_tensor, target_tensor = dataset[0]  # input: (1,32,32,32), target: (3,32,32,32)
 
 # Create DataLoaders for training/validation/testing
-train_loader, val_loader, test_loader = create_data_loaders(
-    'data/processed/train.h5',
-    'data/processed/val.h5',
-    'data/processed/test.h5',
-    batch_size=8
-)
+train_loader = create_data_loaders('data/processed/train.h5', batch_size=8, shuffle=True)
+val_loader = create_data_loaders('data/processed/val.h5', batch_size=8, shuffle=False)
+test_loader = create_data_loaders('data/processed/test.h5', batch_size=8, shuffle=False)
 ```
 
 ---

@@ -328,13 +328,26 @@ def test_data_loader_creation(setup_pipeline_test_data):
     val_path = os.path.join(processed_dir, "val.h5")
     test_path = os.path.join(processed_dir, "test.h5")
     
-    train_loader, val_loader, test_loader = create_data_loaders(
-        train_path=train_path,
-        val_path=val_path,
-        test_path=test_path,
+    train_loader = create_data_loaders(
+        data_path=train_path,
         batch_size=2,
         num_workers=0,  # No multiprocessing for tests
-        device='cpu'
+        device='cpu',
+        shuffle=True
+    )
+    val_loader = create_data_loaders(
+        data_path=val_path,
+        batch_size=2,
+        num_workers=0,
+        device='cpu',
+        shuffle=False
+    )
+    test_loader = create_data_loaders(
+        data_path=test_path,
+        batch_size=2,
+        num_workers=0,
+        device='cpu',
+        shuffle=False
     )
     
     # Test that loaders work

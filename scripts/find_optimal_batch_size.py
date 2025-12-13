@@ -106,7 +106,16 @@ def benchmark_batch_size(config_path, num_workers=4):
                 # Optimization step
                 optimizer.zero_grad()
                 outputs = model(inputs)
-                loss = criterion(outputs, targets)
+                
+                # Handle tuple output from VAE (recon, mu, logvar)
+                if isinstance(outputs, tuple):
+                    # For benchmarking throughput, we can just use the reconstruction part 
+                    # for the loss calculation if we are using simple MSELoss
+                    recon = outputs[0]
+                    loss = criterion(recon, targets)
+                else:
+                    loss = criterion(outputs, targets)
+                
                 loss.backward()
                 optimizer.step()
                 

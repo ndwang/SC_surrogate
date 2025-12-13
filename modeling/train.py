@@ -13,7 +13,7 @@ import torch.nn as nn
 import torch.optim as optim
 import logging
 from pathlib import Path
-from typing import Dict, Any
+from typing import Dict, Any, Tuple
 import time
 from tqdm import tqdm
 import pickle
@@ -53,6 +53,8 @@ class Trainer:
         self.patience_counter = 0
         self.train_losses = []
         self.val_losses = []
+        self.train_metrics_history = {}  # Dictionary to store history of auxiliary metrics
+        self.val_metrics_history = {}    # Dictionary to store history of auxiliary metrics
         
         self.logger.info("Trainer initialized successfully")
     
@@ -301,10 +303,13 @@ class Trainer:
         loss_config = self.config.get('training', {}).get('loss_function', 'mse')
         return get_loss_from_config(loss_config)
     
-    def train_epoch(self, criterion: nn.Module) -> float:
+    def train_epoch(self, criterion: nn.Module) -> Tuple[float, Dict[str, float]]:
         """Train for one epoch."""
         self.model.train()
         total_loss = 0.0
+        # Storage for auxiliary metrics (sum for averaging)
+        epoch_metrics = {}
+        
         num_batches = len(self.train_loader)
         
         # Get dataset type to handle different data formats
@@ -334,7 +339,14 @@ class Trainer:
             
             # Forward pass
             outputs = self.model(inputs)
-            loss = criterion(outputs, targets)
+            loss_output = criterion(outputs, targets)
+            
+            # Handle tuple return (loss, metrics) or scalar loss
+            if isinstance(loss_output, tuple):
+                loss, batch_metrics = loss_output
+            else:
+                loss = loss_output
+                batch_metrics = {}
             
             # Backward pass
             loss.backward()
@@ -343,18 +355,33 @@ class Trainer:
             # Update metrics
             total_loss += loss.item()
             
+            # Aggregate auxiliary metrics
+            for k, v in batch_metrics.items():
+                if k not in epoch_metrics:
+                    epoch_metrics[k] = 0.0
+                epoch_metrics[k] += v.item()
+            
             # Update progress bar
-            progress_bar.set_postfix({
-                'loss': f'{loss.item():.6f}',
-                'avg_loss': f'{total_loss/(batch_idx+1):.6f}'
-            })
+            postfix = {'loss': f'{loss.item():.6f}', 'avg_loss': f'{total_loss/(batch_idx+1):.6f}'}
+            # Add metrics to progress bar if few
+            if len(batch_metrics) <= 3:
+                for k, v in batch_metrics.items():
+                    postfix[k] = f'{v.item():.6f}'
+            progress_bar.set_postfix(postfix)
         
-        return total_loss / num_batches
+        # Average metrics
+        avg_loss = total_loss / num_batches
+        avg_metrics = {k: v / num_batches for k, v in epoch_metrics.items()}
+        
+        return avg_loss, avg_metrics
     
-    def validate(self, criterion: nn.Module) -> float:
+    def validate(self, criterion: nn.Module) -> Tuple[float, Dict[str, float]]:
         """Validate the model."""
         self.model.eval()
         total_loss = 0.0
+        # Storage for auxiliary metrics
+        epoch_metrics = {}
+        
         num_batches = len(self.val_loader)
         
         # Get dataset type to handle different data formats
@@ -375,11 +402,28 @@ class Trainer:
                     targets = targets.to(self.device, non_blocking=True)
                 
                 outputs = self.model(inputs)
-                loss = criterion(outputs, targets)
+                loss_output = criterion(outputs, targets)
+                
+                # Handle tuple return (loss, metrics) or scalar loss
+                if isinstance(loss_output, tuple):
+                    loss, batch_metrics = loss_output
+                else:
+                    loss = loss_output
+                    batch_metrics = {}
                 
                 total_loss += loss.item()
+                
+                # Aggregate auxiliary metrics
+                for k, v in batch_metrics.items():
+                    if k not in epoch_metrics:
+                        epoch_metrics[k] = 0.0
+                    epoch_metrics[k] += v.item()
         
-        return total_loss / num_batches
+        # Average metrics
+        avg_loss = total_loss / num_batches
+        avg_metrics = {k: v / num_batches for k, v in epoch_metrics.items()}
+        
+        return avg_loss, avg_metrics
     
     def save_checkpoint(self, epoch: int, val_loss: float, is_best: bool = False) -> None:
         """Save model checkpoint.
@@ -399,6 +443,8 @@ class Trainer:
             'val_loss': val_loss,
             'train_losses': self.train_losses,
             'val_losses': self.val_losses,
+            'train_metrics': self.train_metrics_history,
+            'val_metrics': self.val_metrics_history,
             'config': self.config
         }
         
@@ -457,6 +503,8 @@ class Trainer:
         self.current_epoch = int(checkpoint.get('epoch', -1)) + 1
         self.train_losses = checkpoint.get('train_losses', []) or []
         self.val_losses = checkpoint.get('val_losses', []) or []
+        self.train_metrics_history = checkpoint.get('train_metrics', {}) or {}
+        self.val_metrics_history = checkpoint.get('val_metrics', {}) or {}
         self.best_val_loss = float(checkpoint.get('val_loss', self.best_val_loss))
         self.logger.info(f"Resumed at epoch index {self.current_epoch} (next epoch = {self.current_epoch+1})")
     
@@ -509,13 +557,25 @@ class Trainer:
             epoch_progress_bar.set_description(f"Epoch {epoch+1}/{num_epochs}")
             
             # Train
-            train_loss = self.train_epoch(criterion)
+            train_loss, train_metrics = self.train_epoch(criterion)
             self.train_losses.append(train_loss)
+            
+            # Append metrics to history
+            for k, v in train_metrics.items():
+                if k not in self.train_metrics_history:
+                    self.train_metrics_history[k] = []
+                self.train_metrics_history[k].append(v)
             
             # Validate
             if epoch % validation_frequency == 0:
-                val_loss = self.validate(criterion)
+                val_loss, val_metrics = self.validate(criterion)
                 self.val_losses.append(val_loss)
+                
+                # Append metrics to history
+                for k, v in val_metrics.items():
+                    if k not in self.val_metrics_history:
+                        self.val_metrics_history[k] = []
+                    self.val_metrics_history[k].append(v)
                 
                 # Learning rate scheduling
                 if self.scheduler:
@@ -573,6 +633,8 @@ class Trainer:
         history = {
             'train_losses': self.train_losses,
             'val_losses': self.val_losses,
+            'train_metrics': self.train_metrics_history,
+            'val_metrics': self.val_metrics_history,
             'best_val_loss': self.best_val_loss,
             'total_epochs': self.current_epoch + 1,
             'total_time': total_time

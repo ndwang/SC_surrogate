@@ -4,17 +4,17 @@
 
 # --- Path Configuration ---
 paths:
-  # Raw data file with group-per-sample structure
-  raw_data_path: "data/raw/SC_10k.h5"
+  # Raw data file
+  raw_data_path: "data/raw/frequency_maps_10k.npz"
   
   # Directory for processed train/val/test data files
-  processed_dir: "data/processed/10k"
+  processed_dir: "data/processed/frequency_maps_10k"
   
   # Directory for saving model checkpoints and scalers
-  model_save_dir: "saved_models/"
+  model_save_dir: "saved_models/frequency_maps_10k"
   
   # Log directory for training outputs
-  log_dir: "logs/"
+  log_dir: "logs/frequency_maps_10k"
 
 # --- Preprocessing Configuration ---
 preprocessing:
@@ -41,45 +41,51 @@ preprocessing:
 # --- Model Configuration ---
 model:
   # Model architecture type
-  architecture: "unet3d"
+  architecture: "vae2d"
   
-  # Input/output dimensions (will be determined from data)
-  input_channels: 1  # charge density
-  output_channels: 3  # electric field components (Ex, Ey, Ez)
-  
-  # Network hyperparameters
-  ## CNN3D only
-  hidden_channels: [32, 64, 128, 64, 32] 
-  padding: 1
-
-  ## UNet3D only
-  depth: 4
-  initial_features: 32
-
-  ## Common
+  # Common hyperparameters (used by all architectures)
   kernel_size: 3
   activation: "relu"
   batch_norm: true
   dropout_rate: 0.1
   weight_init: "kaiming_normal"
 
+  # --- VAE2D Architecture Parameters ---
+  input_channels: 15
+  hidden_channels: [32, 64, 128, 256]
+  latent_dim: 64
+  input_size: 64
+  use_reparameterization: true
+
+  # --- CNN3D Architecture Parameters ---
+  # input_channels: 1
+  # output_channels: 3
+  # hidden_channels: [32, 64, 128, 64, 32]  # Channel progression for encoder/decoder
+  # padding: 1
+
+  # --- UNet3D Architecture Parameters ---
+  # input_channels: 1
+  # output_channels: 3
+  # depth: 4
+  # initial_features: 32
+
 # --- Dataset Configuration ---
 dataset:
   # Dataset type: "space_charge" or "frequency_map"
-  type: "space_charge"  # Options: "space_charge", "frequency_map"
+  type: "frequency_map"  # Options: "space_charge", "frequency_map"
   
   # Filenames for train/val/test splits (relative to processed_dir)
-  train_filename: "train.h5"
-  val_filename: "val.h5"
-  test_filename: "test.h5"
+  train_filename: "train.npy"
+  val_filename: "val.npy"
+  test_filename: "test.npy"
 
 # --- Training Configuration ---
 training:
   # Batch size for training
-  batch_size: 64
+  batch_size: 512
   
   # Number of training epochs
-  num_epochs: 300
+  num_epochs: 100
   
   # Learning rate and optimizer settings
   optimizer: "adamw"
@@ -94,7 +100,18 @@ training:
     min_lr: 1e-6
   
   # Loss function
-  loss_function: "mse"  # Mean Squared Error for regression
+  loss_function:
+    type: "beta_vae"
+    reconstruction_loss:
+      type: "kl_divergence"
+      per_channel: true
+      normalize: false
+    kl_regularization:
+      type: "kl_regularization"
+      reduction: "mean"
+    beta: 0.0
+  
+  # loss_function: "mse"
   
   # Validation and checkpointing
   validation_frequency: 1  # Validate every N epochs
@@ -106,7 +123,7 @@ training:
   
   # Device configuration
   device: "auto"  # "auto", "cuda", "cpu"
-  num_workers: 12  # For DataLoader
+  num_workers: 8  # For DataLoader
 
   # Resume training options
   resume:
@@ -118,7 +135,7 @@ training:
 # --- Evaluation Configuration ---
 evaluation:
   # Metrics to compute during evaluation
-  metrics: ["mse", "mae", "r2_score"]
+  metrics: ["mse", "mae", "r2_score", "kl_divergence"]
   
   # Visualization settings
   save_predictions: true
@@ -134,4 +151,4 @@ logging:
   log_to_file: true
   log_filename: "training.log"
   
-  project_name: "space_charge_surrogate" 
+  project_name: "space_charge_surrogate"

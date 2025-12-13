@@ -66,7 +66,7 @@ def create_data_loaders(
         test_loader = create_data_loaders("test.h5", shuffle=False)
         
         # For frequency_map (single file):
-        loader = create_data_loaders("frequency_maps.npz", dataset_type="frequency_map")
+        loader = create_data_loaders("frequency_maps.npy", dataset_type="frequency_map")
     """
     
     if dataset_type not in DATASET_REGISTRY:
